@@ -95,7 +95,7 @@ public final class LegacyBackend implements StreamingBackend {
         String mime=path!=null && path.toLowerCase(Locale.ROOT).endsWith(".mp4")?"video/mp4":"application/x-mpegURL";
         String proxy="http://127.0.0.1:"+localPort+(mime.equals("video/mp4")?"/resource.mp4?src=":"/resource.m3u8?src=")+Base64.encodeToString(url.getBytes(StandardCharsets.UTF_8),Base64.NO_WRAP);
         JSONObject source=new JSONObject().put("id",detail.optString("audio_type","0")).put("label",sourceLabel).put("url",proxy).put("mimeType",mime).put("localProxy",true);
-        return new JSONObject().put("schemaVersion",1).put("contentId",provider+":"+detail.optString("_kind","movie")+":"+detail.optString("id")+":"+episode.optString("collection","1")).put("title",detail.optString("vod_name","Video")+" · "+episode.optString("title","Episode")).put("sources",new JSONArray().put(source)).toString();
+        return new JSONObject().put("schemaVersion",1).put("contentId",provider+":"+detail.optString("_kind","movie")+":"+detail.optString("id")+":"+EpisodeSelection.key(episode)).put("title",detail.optString("vod_name","Video")+" · "+episode.optString("title","Episode")).put("sources",new JSONArray().put(source)).toString();
     }
     public boolean ownsProxy(URI uri) { return port>0 && "http".equals(uri.getScheme()) && "127.0.0.1".equals(uri.getHost()) && uri.getPort()==port && ("/resource.m3u8".equals(uri.getPath()) || "/resource.mp4".equals(uri.getPath())); }
     public static synchronized boolean isActiveProxy(String url) { try {for(LegacyBackend value:instances.values())if(value.ownsProxy(URI.create(url)))return true;return false;}catch(IllegalArgumentException e){return false;} }

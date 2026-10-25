@@ -19,6 +19,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 import app.veyra.data.PlaybackJson;
 import app.veyra.data.LegacyBackend;
+import app.veyra.data.EpisodeSelection;
 import org.json.*;
 import java.util.concurrent.*;
 import app.veyra.model.*;
@@ -28,11 +29,11 @@ import java.util.*;
 public final class PlayerActivity extends Activity {
     private PlaybackRequest request;
     private final ExecutorService resolver=Executors.newSingleThreadExecutor();
-    private boolean resolving;
+    private boolean resolving, started;
     private ExoPlayer player;
     private PlayerView view;
     private LinearLayout root, header, footer;
-    private TextView status;
+    private TextView status, titleView;
     private Button sourceButton, miniButton;
     private MediaSession session;
     private int sourceIndex;
@@ -52,9 +53,12 @@ public final class PlayerActivity extends Activity {
         position=getSharedPreferences("resume",MODE_PRIVATE).getLong(request.contentId,0);
         if(saved!=null) { sourceIndex=saved.getInt("source",0); position=saved.getLong("position",position); playWhenReady=saved.getBoolean("playing",true); speed=saved.getFloat("speed",1f); }
         if(sourceIndex<0 || sourceIndex>=request.sources.size()) sourceIndex=0;
+        createPlayerUi();
+    }
+    private void createPlayerUi() {
         root=Ui.column(this); header=Ui.column(this); footer=Ui.column(this);
         Button back=Ui.button(this,"‹  Library"); back.setOnClickListener(v->finish()); header.addView(back);
-        header.addView(Ui.text(this,request.title,22,Ui.INK)); root.addView(header);
+        titleView=Ui.text(this,request.title,22,Ui.INK); header.addView(titleView); root.addView(header);
         view=new PlayerView(this); view.setShowSubtitleButton(true); view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
         view.setContentDescription("Video player"); root.addView(view,new LinearLayout.LayoutParams(-1,0,1));
         view.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updatePip());
@@ -62,6 +66,10 @@ public final class PlayerActivity extends Activity {
         HorizontalScrollView scroll=new HorizontalScrollView(this); scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout actions=new LinearLayout(this); scroll.addView(actions); footer.addView(scroll);
         sourceButton=action(actions,"Source",()->chooseSource());
+        if(getIntent().hasExtra("vodId")) {
+            action(actions,"Previous episode",()->resolveSource(selectedType(),-1));
+            action(actions,"Next episode",()->resolveSource(selectedType(),1));
+        }
         action(actions,"Quality",()->chooseTracks(C.TRACK_TYPE_VIDEO));
         action(actions,"Audio",()->chooseTracks(C.TRACK_TYPE_AUDIO));
         action(actions,"Captions",()->chooseTracks(C.TRACK_TYPE_TEXT));
@@ -83,38 +91,63 @@ public final class PlayerActivity extends Activity {
         resolver.execute(()->{try {
             String provider=getIntent().getStringExtra("provider");LegacyBackend backend=LegacyBackend.get(this,provider==null?"current":provider);
             JSONObject detail=backend.detail(getIntent().getStringExtra("vodId"),getIntent().getStringExtra("audioType")==null?"0":getIntent().getStringExtra("audioType"),getIntent().getStringExtra("kind"));
-            JSONArray episodes=detail.getJSONArray("vod_collection");JSONObject chosen=null;
-            for(int i=0;i<episodes.length();i++)if(episodes.getJSONObject(i).optString("collection").equals(getIntent().getStringExtra("collection"))){chosen=episodes.getJSONObject(i);break;}
-            if(chosen==null)throw new java.io.IOException();String json=backend.playbackJson(detail,chosen,"Selected source");
-            runOnUiThread(()->{if(isDestroyed() || isFinishing())return;getIntent().putExtra("playback",json);recreate();});
-        }catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed())message.setText("Playback could not be restored. Return to the title to reconnect.");});}});
+            JSONObject chosen=EpisodeSelection.select(detail.getJSONArray("vod_collection"),getIntent().getStringExtra("collection"),0);
+            String json=backend.playbackJson(detail,chosen,"Selected source");
+            PlaybackRequest restored=PlaybackJson.parseInternal(json);
+            runOnUiThread(()->{
+                if(isDestroyed() || isFinishing())return;
+                request=restored;sourceIndex=0;getIntent().putExtra("playback",json);
+                createPlayerUi();applyPlayerLayout();if(started)startPlayer();
+            });
+        }catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed() && !isFinishing())message.setText("Playback could not be restored. Return to the title to reconnect.");});}});
     }
     private Button action(LinearLayout row,String label,Runnable run) {
         Button b=Ui.button(this,label); b.setOnClickListener(v->run.run());
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2); lp.setMargins(0,0,Ui.dp(this,8),0); row.addView(b,lp); return b;
     }
-    private void refreshSource(String type) {
+    private String selectedType() {
+        String type=getIntent().getStringExtra("audioType");return type==null?"0":type;
+    }
+    private void refreshSource(String type) { resolveSource(type,0); }
+    private void resolveSource(String type,int episodeOffset) {
         if(resolving)return;
-        resolving=true;status.setText("Refreshing source…");
+        resolving=true;status.setText(episodeOffset==0?"Refreshing source…":"Opening episode…");
         String id=getIntent().getStringExtra("vodId"), collection=getIntent().getStringExtra("collection");
+        String provider=getIntent().getStringExtra("provider"),kind=getIntent().getStringExtra("kind");
         resolver.execute(()->{
             try {
-                LegacyBackend backend=LegacyBackend.get(this,getIntent().getStringExtra("provider")==null?"current":getIntent().getStringExtra("provider"));JSONObject detail=backend.detail(id,type,getIntent().getStringExtra("kind"));
-                JSONArray episodes=detail.getJSONArray("vod_collection");JSONObject episode=null;
-                for(int i=0;i<episodes.length();i++)if(episodes.getJSONObject(i).optString("collection").equals(collection)){episode=episodes.getJSONObject(i);break;}
-                if(episode==null)throw new java.io.IOException();
+                LegacyBackend backend=LegacyBackend.get(this,provider==null?"current":provider);
+                JSONObject detail=backend.detail(id,type,kind);
+                JSONObject episode=EpisodeSelection.select(detail.getJSONArray("vod_collection"),collection,episodeOffset);
+                String nextCollection=EpisodeSelection.key(episode);
                 String label=type;JSONArray options=detail.optJSONArray("audio_type_option");
                 if(options!=null)for(int i=0;i<options.length();i++){JSONObject o=options.getJSONObject(i);if(o.optString("type").equals(type))label=o.optString("type_name",type);}
                 String json=backend.playbackJson(detail,episode,label);PlaybackRequest replacement=PlaybackJson.parseInternal(json);
-                runOnUiThread(()->{if(isDestroyed())return;resolving=false;release();request=replacement;sourceIndex=0;getIntent().putExtra("playback",json).putExtra("audioType",type);if(hasWindowFocus() || isMini())startPlayer();});
-            }catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed()){resolving=false;status.setText("The source could not be refreshed. Please retry or return to the library.");}});}
+                String variants=options==null?"[]":options.toString();
+                runOnUiThread(()->completeResolution(replacement,json,type,nextCollection,variants,episodeOffset));
+            }catch(Exception|LinkageError e){runOnUiThread(()->{
+                if(!isDestroyed() && !isFinishing()){
+                    resolving=false;
+                    String message=e.getMessage();
+                    status.setText("This is the first episode".equals(message) || "This is the last episode".equals(message)?message:"The source could not be refreshed. Please retry or return to the library.");
+                }
+            });}
         });
+    }
+    // Called on the UI thread after the backend resolves fresh playback data.
+    void completeResolution(PlaybackRequest replacement,String json,String type,String collection,String variants,int offset) {
+        if(isDestroyed() || isFinishing())return;
+        resolving=false;release();request=replacement;sourceIndex=0;
+        if(offset!=0){position=getSharedPreferences("resume",MODE_PRIVATE).getLong(request.contentId,0);playWhenReady=true;}
+        titleView.setText(request.title);
+        getIntent().putExtra("playback",json).putExtra("audioType",type).putExtra("collection",collection).putExtra("variants",variants);
+        if(started)startPlayer();
     }
     private void chooseSource() {
         if(getIntent().hasExtra("vodId")) {
             try {JSONArray variants=new JSONArray(getIntent().getStringExtra("variants"));
                 if(variants.length()>0){String[] labels=new String[variants.length()];for(int i=0;i<labels.length;i++)labels[i]=variants.getJSONObject(i).getString("type_name");
-                    new AlertDialog.Builder(this).setTitle("Playback source").setItems(labels,(d,i)->{try{refreshSource(variants.getJSONObject(i).getString("type"));}catch(JSONException ignored){}}).show();return;}
+                    new AlertDialog.Builder(this).setTitle("Playback source").setItems(labels,(d,i)->{try{refreshSource(variants.getJSONObject(i).optString("type"));}catch(JSONException ignored){}}).show();return;}
             }catch(Exception ignored){}
         }
 
@@ -142,7 +175,7 @@ public final class PlayerActivity extends Activity {
         new AlertDialog.Builder(this).setTitle(type==C.TRACK_TYPE_VIDEO?"Stream quality":type==C.TRACK_TYPE_AUDIO?"Audio":"Captions").setItems(labels.toArray(new String[0]),(d,i)->{if(player!=null)choices.get(i).run();}).show();
     }
     private void startPlayer() {
-        if(request==null || player!=null) return;
+        if(!started || request==null || player!=null || view==null || isFinishing()) return;
         StreamSource source=request.sources.get(sourceIndex); sourceButton.setText(source.label+" ▾");
         DataSource.Factory http=StreamHttp.factory(source);
         player=new ExoPlayer.Builder(this).setSeekBackIncrementMs(10000).setSeekForwardIncrementMs(10000).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).build();
@@ -158,7 +191,7 @@ public final class PlayerActivity extends Activity {
             @Override public void onVideoSizeChanged(VideoSize size) { updatePip(); }
             @Override public void onPlaybackParametersChanged(PlaybackParameters params) { speed=params.speed; syncSession(); }
             @Override public void onPlayerError(PlaybackException error) {
-                status.setText("This stream could not play. It may have expired, lost its connection or require an unsupported format. Return to the title to refresh it."); updatePip();
+                status.setText("This stream could not play. It may have expired, lost its connection or require an unsupported format. Use Retry to reconnect."); syncSession(); updatePip();
             }
         });
         player.setMediaItem(new MediaItem.Builder().setMediaId(request.contentId+":"+source.id).setUri(source.url).setMimeType(source.mimeType).build());
@@ -224,13 +257,13 @@ public final class PlayerActivity extends Activity {
     private void release() {
         handler.removeCallbacks(saveProgress);
         if(player==null)return;
-        remember(); position=Math.max(0,player.getCurrentPosition()); playWhenReady=player.getPlayWhenReady(); speed=player.getPlaybackParameters().speed;
+        remember(); position=player.getPlaybackState()==Player.STATE_ENDED?0:Math.max(0,player.getCurrentPosition()); playWhenReady=player.getPlayWhenReady(); speed=player.getPlaybackParameters().speed;
         if(session!=null) { session.setActive(false); session.release(); session=null; }
         view.setPlayer(null); player.release(); player=null; view.setKeepScreenOn(false); updatePip();
     }
-    @Override protected void onStart() { super.onStart(); startPlayer(); applyPlayerLayout(); }
+    @Override protected void onStart() { super.onStart(); started=true; startPlayer(); applyPlayerLayout(); }
     // PiP pauses the Activity, but keeps it visible: release only when it stops.
-    @Override protected void onStop() { release(); super.onStop(); }
+    @Override protected void onStop() { started=false; release(); super.onStop(); }
     @Override protected void onDestroy() { resolver.shutdownNow(); release(); super.onDestroy(); }
     @Override protected void onSaveInstanceState(Bundle saved) {
         saved.putString("playback",getIntent().getStringExtra("playback"));

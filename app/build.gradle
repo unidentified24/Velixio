@@ -10,6 +10,18 @@ android {
         versionName '0.2.0-integration'
     }
     sourceSets { main { assets.srcDirs += ["../private/assets"]; jniLibs.srcDirs += ["../private/jniLibs"] } }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Keep Android test downloads and lock files inside the ignored build directory.
+            def testHome = layout.buildDirectory.dir("test-home").get().asFile
+            def testTemp = layout.buildDirectory.dir("test-tmp").get().asFile
+            systemProperty "java.io.tmpdir", testTemp.absolutePath
+            systemProperty "user.home", testHome.absolutePath
+            systemProperty "robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2"
+            doFirst { testHome.mkdirs(); testTemp.mkdirs() }
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -17,6 +29,7 @@ android {
 }
 dependencies {
     testImplementation "junit:junit:4.13.2"
+    testImplementation "org.robolectric:robolectric:4.16"
     testImplementation "org.json:json:20240303"
     def media3 = '1.8.1'
     implementation "androidx.media3:media3-exoplayer:$media3"

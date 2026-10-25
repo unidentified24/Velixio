@@ -23,10 +23,15 @@ public final class MainActivity extends Activity {
     private JSONObject currentDetail;
     private CombinedCatalog catalog;
     private String selectedProvider="current", selectedKind="movie";
-    private boolean busy;
+    private Future<?> pending;
+    private String restoreScreen="",restoreId="",restoreType="0";
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
-        if(saved!=null){channel=saved.getString("channel","");query=saved.getString("query","");page=saved.getInt("page",1);}
+        if(saved!=null){
+            channel=saved.getString("channel","");query=saved.getString("query","");page=saved.getInt("page",1);
+            restoreScreen=saved.getString("screen","");restoreId=saved.getString("detailId","");restoreType=saved.getString("audioType","0");
+            selectedProvider=saved.getString("provider","current");selectedKind=saved.getString("kind","movie");
+        }
         catalog=new CombinedCatalog(this);
         root=Ui.column(this);
         LinearLayout brand=new LinearLayout(this);TextView logo=Ui.text(this,"V E Y R A",26,Ui.INK);brand.addView(logo,new LinearLayout.LayoutParams(0,-2,1));
@@ -41,11 +46,11 @@ public final class MainActivity extends Activity {
     private interface Work { Object run() throws Exception; }
     private interface Done { void accept(Object result) throws Exception; }
     private void work(String message,Work task,Done done) {
-        int ticket=++generation;busy=true;status.setText(message);
-        io.execute(()->{try {Object result=task.run();runOnUiThread(()->{
-            if(isDestroyed() || ticket!=generation)return;busy=false;
+        int ticket=++generation;if(pending!=null)pending.cancel(true);status.setText(message);
+        pending=io.submit(()->{try {Object result=task.run();runOnUiThread(()->{
+            if(isDestroyed() || isFinishing() || ticket!=generation)return;
             try{done.accept(result);}catch(Exception e){showError("The server returned an unsupported response.");}
-        });}catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed() && ticket==generation){busy=false;showError(errorMessage(e));}});}});
+        });}catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed() && !isFinishing() && ticket==generation){showError(errorMessage(e));}});}});
     }
     private String errorMessage(Throwable e) {
         if(e instanceof FileNotFoundException)return "The private backend configuration is missing from this build.";
@@ -56,13 +61,15 @@ public final class MainActivity extends Activity {
         return "This request could not complete. Please retry.";
     }
     private void showError(String message) {status.setText(message);}
-    private LegacyBackend backend() throws Exception {return LegacyBackend.get(this,selectedProvider);}
     private void loadChannels() {
         work("Connecting your library…",()->catalog.channels(),value->{
             JSONArray channels=(JSONArray)value;tabs.removeAllViews();
             for(int i=0;i<channels.length();i++) {JSONObject c=channels.getJSONObject(i);String id=c.getString("id");if(channel.isEmpty())channel=id;
                 Button b=Ui.button(this,c.optString("channel_name","Browse"));b.setOnClickListener(v->{channel=id;query="";search.setText("");page=1;loadCatalog();});tabs.addView(b);}
-            loadCatalog();
+            String restored=restoreScreen;restoreScreen="";
+            if(restored.equals("detail") && !restoreId.isEmpty())loadDetail(restoreId,restoreType,selectedProvider,selectedKind);
+            else if(restored.equals("favorites"))favorites();
+            else loadCatalog();
         });
     }
     private void loadCatalog() {
@@ -91,42 +98,41 @@ public final class MainActivity extends Activity {
         content.addView(row);
     }
     private void openEdition(JSONObject item,String id) {
-        selectedKind=item.optString("_kind","movie");
+        String kind=item.optString("_kind","movie");
         JSONArray editions=item.optJSONArray("_editions");
-        if(editions==null || editions.length()<2){selectedProvider=item.optString("_provider","current");loadDetail(id,"0");return;}
+        if(editions==null || editions.length()<2){loadDetail(id,"0",item.optString("_provider","current"),kind);return;}
         String[] labels=new String[editions.length()];for(int i=0;i<labels.length;i++)labels[i]="Library edition "+(i+1);
-        new AlertDialog.Builder(this).setTitle("Choose an edition").setItems(labels,(d,i)->{try{JSONObject edition=editions.getJSONObject(i);selectedProvider=edition.getString("provider");loadDetail(edition.optString("id"),"0");}catch(JSONException ignored){}}).show();
+        new AlertDialog.Builder(this).setTitle("Choose an edition").setItems(labels,(d,i)->{try{JSONObject edition=editions.getJSONObject(i);loadDetail(edition.optString("id"),"0",edition.getString("provider"),kind);}catch(JSONException ignored){}}).show();
     }
-    private void loadDetail(String id,String audioType) {
-        final String provider=selectedProvider,kind=selectedKind;
-        work("Loading title and playback sources…",()->LegacyBackend.get(this,provider).detail(id,audioType,kind),value->showDetail((JSONObject)value));
+    private void loadDetail(String id,String audioType,String provider,String kind) {
+        work("Loading title and playback sources…",()->LegacyBackend.get(this,provider).detail(id,audioType,kind),value->{selectedProvider=provider;selectedKind=kind;showDetail((JSONObject)value);});
     }
     private void showDetail(JSONObject detail) throws Exception {
-        currentDetail=detail;screen="detail";content.removeAllViews();status.setText("Choose an episode");
+        currentDetail=detail;final String detailProvider=selectedProvider,detailKind=selectedKind;screen="detail";content.removeAllViews();status.setText("Choose an episode");
         Button back=Ui.button(this,"‹ Back to library");back.setOnClickListener(v->loadCatalog());content.addView(back);
         content.addView(Ui.text(this,detail.optString("vod_name","Video"),30,Ui.INK));
         String description=detail.optString("vod_blurb");content.addView(Ui.text(this,android.text.Html.fromHtml(description,android.text.Html.FROM_HTML_MODE_LEGACY).toString(),16,Ui.MUTED));
-        Button save=Ui.button(this,"Save / remove from My list");save.setOnClickListener(v->toggleFavorite(detail));content.addView(save);
+        Button save=Ui.button(this,"Save / remove from My list");save.setOnClickListener(v->toggleFavorite(detail,detailProvider,detailKind));content.addView(save);
         JSONArray audio=detail.optJSONArray("audio_type_option");String selected=detail.optString("audio_type","0"),label="Default";
         LinearLayout variants=new LinearLayout(this);
         if(audio!=null)for(int i=0;i<audio.length();i++){JSONObject a=audio.getJSONObject(i);String type=a.optString("type"),name=a.optString("type_name",type);if(type.equals(selected))label=name;
-            Button b=Ui.button(this,name+(type.equals(selected)?" ✓":""));b.setOnClickListener(v->loadDetail(detail.optString("id"),type));variants.addView(b);}
-        content.addView(variants);final String sourceLabel=label;
+            Button b=Ui.button(this,name+(type.equals(selected)?" ✓":""));b.setOnClickListener(v->loadDetail(detail.optString("id"),type,detailProvider,detailKind));variants.addView(b);}
+        HorizontalScrollView sourceChoices=new HorizontalScrollView(this);sourceChoices.setHorizontalScrollBarEnabled(false);sourceChoices.addView(variants);content.addView(sourceChoices);final String sourceLabel=label;
         JSONArray seasons=detail.optJSONArray("series_info");
-        if(seasons!=null && seasons.length()>1){content.addView(Ui.text(this,"Seasons",18,Ui.INK));for(int i=0;i<seasons.length();i++){JSONObject season=seasons.getJSONObject(i);String sid=season.optString("vod_id");if(!sid.isEmpty()){Button b=Ui.button(this,season.optString("series","Season "+(i+1)));b.setOnClickListener(v->loadDetail(sid,"0"));content.addView(b);}}}
+        if(seasons!=null && seasons.length()>1){content.addView(Ui.text(this,"Seasons",18,Ui.INK));for(int i=0;i<seasons.length();i++){JSONObject season=seasons.getJSONObject(i);String sid=season.optString("vod_id");if(!sid.isEmpty()){Button b=Ui.button(this,season.optString("series","Season "+(i+1)));b.setOnClickListener(v->loadDetail(sid,"0",detailProvider,detailKind));content.addView(b);}}}
         JSONArray episodes=detail.optJSONArray("vod_collection");
         if(episodes==null || episodes.length()==0){content.addView(Ui.text(this,"The server has not supplied playable episodes for this title.",17,Ui.MUTED));return;}
         for(int i=0;i<episodes.length();i++) {JSONObject episode=episodes.getJSONObject(i);Button play=Ui.button(this,"▶  "+episode.optString("title","Episode "+(i+1)));
-            play.setOnClickListener(v->work("Opening episode…",()->backend().playbackJson(detail,episode,sourceLabel),json->{status.setText("Choose an episode");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)json).putExtra("audioType",detail.optString("audio_type","0")).putExtra("kind",selectedKind).putExtra("provider",selectedProvider).putExtra("vodId",detail.optString("id")).putExtra("collection",episode.optString("collection","1")).putExtra("variants",detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString()));}));content.addView(play);}
+            play.setOnClickListener(v->work("Opening episode…",()->LegacyBackend.get(this,detailProvider).playbackJson(detail,episode,sourceLabel),json->{status.setText("Choose an episode");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)json).putExtra("audioType",detail.optString("audio_type","0")).putExtra("kind",detailKind).putExtra("provider",detailProvider).putExtra("vodId",detail.optString("id")).putExtra("collection",EpisodeSelection.key(episode)).putExtra("variants",detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString()));}));content.addView(play);}
     }
-    private void toggleFavorite(JSONObject detail) {
-        try {String id=selectedProvider+":"+selectedKind+":"+detail.optString("id");android.content.SharedPreferences prefs=getSharedPreferences("favorites",MODE_PRIVATE);
+    private void toggleFavorite(JSONObject detail,String provider,String kind) {
+        try {String id=provider+":"+kind+":"+detail.optString("id");android.content.SharedPreferences prefs=getSharedPreferences("favorites",MODE_PRIVATE);
             if(prefs.contains(id)){prefs.edit().remove(id).apply();Toast.makeText(this,"Removed from My list",Toast.LENGTH_SHORT).show();}
-            else {JSONObject record=new JSONObject();for(String key:new String[]{"id","vod_name","vod_year","vod_area","vod_douban_score"})record.put(key,detail.optString(key));record.put("_provider",selectedProvider).put("_kind",selectedKind);prefs.edit().putString(id,record.toString()).apply();Toast.makeText(this,"Saved to My list",Toast.LENGTH_SHORT).show();}
+            else {JSONObject record=new JSONObject();for(String key:new String[]{"id","vod_name","vod_pic","vod_year","vod_area","vod_douban_score"})record.put(key,detail.optString(key));record.put("_provider",provider).put("_kind",kind);prefs.edit().putString(id,record.toString()).apply();Toast.makeText(this,"Saved to My list",Toast.LENGTH_SHORT).show();}
         }catch(JSONException ignored){status.setText("Could not save this title.");}
     }
     private void favorites() {
-        generation++;screen="favorites";content.removeAllViews();status.setText("My list");
+        generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="favorites";posters.clearPending();content.removeAllViews();status.setText("My list");
         for(Object value:getSharedPreferences("favorites",MODE_PRIVATE).getAll().values())try{addTitle(new JSONObject((String)value));}catch(Exception ignored){}
         if(content.getChildCount()==0)content.addView(Ui.text(this,"Save titles here to find them later.",20,Ui.INK));
     }
@@ -141,6 +147,9 @@ public final class MainActivity extends Activity {
         work("Opening playback file…",()->{try(InputStream in=getContentResolver().openInputStream(data.getData())){if(in==null)throw new IOException();String json=LegacyBackend.read(in,65536);PlaybackJson.parse(json);return json;}},value->{status.setText("Ready");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)value));});
     }
     @Override public void onBackPressed() {if(!screen.equals("catalog")){loadCatalog();}else super.onBackPressed();}
-    @Override protected void onSaveInstanceState(Bundle state) {state.putString("channel",channel);state.putString("query",query);state.putInt("page",page);super.onSaveInstanceState(state);}
-    @Override protected void onDestroy() {generation++;posters.close();io.shutdownNow();super.onDestroy();}
+    @Override protected void onSaveInstanceState(Bundle state) {state.putString("channel",channel);state.putString("query",query);state.putInt("page",page);
+        state.putString("screen",screen);state.putString("provider",selectedProvider);state.putString("kind",selectedKind);
+        if(currentDetail!=null){state.putString("detailId",currentDetail.optString("id"));state.putString("audioType",currentDetail.optString("audio_type","0"));}
+        super.onSaveInstanceState(state);}
+    @Override protected void onDestroy() {generation++;if(pending!=null)pending.cancel(true);posters.close();io.shutdownNow();super.onDestroy();}
 }
