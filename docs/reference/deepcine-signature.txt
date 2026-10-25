@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: ST=velvetreel, L=velvetreel, O=velvetreel, OU=velvetreel, CN=velvetreel
+Signer #1 certificate SHA-256 digest: 4dbf2f4b7737fa8ed85bb7bb6a92211a54a7c795e0bcadbb28161d9fc86d714f
+Signer #1 certificate SHA-1 digest: b95756e3898157aa7f1dc8125d22be869f5c4994
+Signer #1 certificate MD5 digest: 048f0d2737e3c7528ecaad3d43b67e70
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: d06440539a2ff02036ec779ed9a8e08951f8d1c075481a1b9216b06fa18b5c3d
+Signer #1 public key SHA-1 digest: ce8688a153476c30d6581cf6943f9e109513cfc3
+Signer #1 public key MD5 digest: 94dad91a566b65fb49e08fd11c4cc1d1

@@ -1,0 +1,391 @@
+{
+  "bytes": 48983183,
+  "sha256": "42f22105957878118260cf6401df5cdaf7306bd643d1945e9058e62c8052e32e",
+  "entries": 3357,
+  "uncompressed": 109308941,
+  "duplicates": [],
+  "dex": [
+    {
+      "file": "classes.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 52202,
+      "classes": 4356,
+      "methods": 63729,
+      "fields": 55951,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes2.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 55283,
+      "classes": 5535,
+      "methods": 63656,
+      "fields": 61022,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes3.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 62989,
+      "classes": 6336,
+      "methods": 65465,
+      "fields": 54478,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes4.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 58025,
+      "classes": 6443,
+      "methods": 65467,
+      "fields": 32282,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes5.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 56810,
+      "classes": 6877,
+      "methods": 65466,
+      "fields": 27864,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes6.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 59499,
+      "classes": 7280,
+      "methods": 65295,
+      "fields": 33696,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes7.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 60105,
+      "classes": 7223,
+      "methods": 65426,
+      "fields": 34006,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes8.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 58692,
+      "classes": 7688,
+      "methods": 65452,
+      "fields": 36882,
+      "sha1_valid": true
+    },
+    {
+      "file": "classes9.dex",
+      "magic": "b'dex\\n037\\x00'",
+      "strings": 24123,
+      "classes": 2362,
+      "methods": 19157,
+      "fields": 13202,
+      "sha1_valid": true
+    },
+    {
+      "file": "assets/audience_network.dex",
+      "magic": "b'dex\\n035\\x00'",
+      "strings": 30969,
+      "classes": 3235,
+      "methods": 27619,
+      "fields": 13787,
+      "sha1_valid": true
+    }
+  ],
+  "assets": [
+    {
+      "path": "assets/dexopt/baseline.prof",
+      "size": 4871,
+      "compressed": 4871,
+      "sha256": "d45e4a908a70cb789e5d492ca22aab0f1f4d8bc14b1d3647be8d3deae7d279a5"
+    },
+    {
+      "path": "assets/dexopt/baseline.profm",
+      "size": 352,
+      "compressed": 352,
+      "sha256": "7c329e0f6eac39bf8fb001658cc4bea8c9825479753859b4d4aba8451e4a06f8"
+    },
+    {
+      "path": "assets/OSETSDKProtected.dat",
+      "size": 164715,
+      "compressed": 163619,
+      "sha256": "e2af04ff64156b443f97b514ce1cc34a8b360f1934cceec748a39e590abe5a27"
+    },
+    {
+      "path": "assets/ad-viewer/omid-session-client-v1.js",
+      "size": 68100,
+      "compressed": 13253,
+      "sha256": "f15e5ce012c87bd32c15d71d2fd0b954b9b2fd9d5818d817b3820af3d93d5a35"
+    },
+    {
+      "path": "assets/ad-viewer/omsdk-v1.js",
+      "size": 43924,
+      "compressed": 14548,
+      "sha256": "896cf905b2b562818da58e19e25b525083f18638f6b9b0d7c6aea411a9907585"
+    },
+    {
+      "path": "assets/audience_network.dex",
+      "size": 5017908,
+      "compressed": 2369470,
+      "sha256": "07fef7ea41d84ccf44ef2e2a6de8d23e3d3dd5920c87979a1d501a9cb6272496"
+    },
+    {
+      "path": "assets/bm_networks/gam.bmnetwork",
+      "size": 108,
+      "compressed": 98,
+      "sha256": "a99e210bc6fe39624188482feb9b95370c6d325ccd3c231aa4e18f0aaca31c5e"
+    },
+    {
+      "path": "assets/bm_networks/gam_dynamic.bmnetwork",
+      "size": 124,
+      "compressed": 103,
+      "sha256": "5b55f4b6d60876c9149470004f1eeff57407bbed420a16e5512f38e5f11eefd3"
+    },
+    {
+      "path": "assets/builddatas.json",
+      "size": 450,
+      "compressed": 140,
+      "sha256": "bc8b92790938e9acc54affd28bf55eabcb0fe1b36de6400cb5fb89561a066d3d"
+    },
+    {
+      "path": "assets/dic",
+      "size": 4016,
+      "compressed": 2454,
+      "sha256": "08a598423c6747c3c23fffb2fb12c2c3cf611986436a367d99b5acca3e6590c7"
+    },
+    {
+      "path": "assets/fyb_iframe_endcard_tmpl.html",
+      "size": 520,
+      "compressed": 266,
+      "sha256": "e042e304cecd19bb6816de0150d3895e2717e66dda91f7e189610687c049dae6"
+    },
+    {
+      "path": "assets/fyb_static_endcard_tmpl.html",
+      "size": 3350,
+      "compressed": 1029,
+      "sha256": "77d33780c591c0ce29a40b354ba6d7d68533702b8e4a558ff40e700f26adc4f6"
+    },
+    {
+      "path": "assets/ia_js_load_monitor.txt",
+      "size": 968,
+      "compressed": 434,
+      "sha256": "7dd00d954c6e1a6f2dfbce3d84346ea97f4d760732c7f4d29e4179fe54c5b32c"
+    },
+    {
+      "path": "assets/ia_mraid_bridge.txt",
+      "size": 28630,
+      "compressed": 5852,
+      "sha256": "5bbfc33714217320d51e82609f4d07b0519fa60eba54ab6398952b5dc7bdd3a1"
+    },
+    {
+      "path": "assets/mbridge_download_dialog_view.xml",
+      "size": 25224,
+      "compressed": 2128,
+      "sha256": "31697662a3a21ac12371f7e844e4495188dd94849cdb0500b28eb134802010e9"
+    },
+    {
+      "path": "assets/okt_sdk_config",
+      "size": 109,
+      "compressed": 70,
+      "sha256": "f435728ca5edbc9b6e04893c667d2a2bfa9d72fe224721e475acccdc82e7ff98"
+    },
+    {
+      "path": "assets/okt_sdk_preset_1978",
+      "size": 3748,
+      "compressed": 2349,
+      "sha256": "d9af3a1b6da8d0a30f10ff33f115b32a5a640a7637cf9636235c629814868076"
+    },
+    {
+      "path": "assets/rv_binddatas.xml",
+      "size": 2072,
+      "compressed": 631,
+      "sha256": "b1293a8346ac6472b151956167b3d83034db197a65a61d4f27f051acb87506d8"
+    },
+    {
+      "path": "assets/tt_mime_type.pro",
+      "size": 53012,
+      "compressed": 13769,
+      "sha256": "16ac07012233f98eb40e45191c9783fa9eea65fba35444410f7f9c3eb8f72c16"
+    },
+    {
+      "path": "assets/pp_hlsProtected.dat",
+      "size": 27097,
+      "compressed": 27030,
+      "sha256": "a6de1af9a360a2915ff06ed4528c0998587f2cabcf35b95f6517ece63ea4dfec"
+    }
+  ],
+  "native": [
+    {
+      "path": "lib/arm64-v8a/libapminsighta.so",
+      "size": 102256,
+      "compressed": 102256,
+      "sha256": "b1a70dabf68e95e1910bb080dbe1c78ae628a0bf7332f7ba41db23d9bbe282c0"
+    },
+    {
+      "path": "lib/arm64-v8a/libapminsightb.so",
+      "size": 124352,
+      "compressed": 124352,
+      "sha256": "c36885b7189dc5173627ff9afb5a49cb94420b9b98341536b4476b792babab61"
+    },
+    {
+      "path": "lib/arm64-v8a/libapplovin-native-crash-reporter.so",
+      "size": 860200,
+      "compressed": 860200,
+      "sha256": "ecf2a7327be482870f4c791392a50cecfeaabb2c76a7224898e9713a18c4c36a"
+    },
+    {
+      "path": "lib/arm64-v8a/libbuffer_pgl.so",
+      "size": 9000,
+      "compressed": 9000,
+      "sha256": "d416381c202993e4a03fd6ae0c5b407f1531f61fc45f518ad5b7f4620d5a2133"
+    },
+    {
+      "path": "lib/arm64-v8a/libfile_lock_pgl.so",
+      "size": 6312,
+      "compressed": 6312,
+      "sha256": "d14096b150b4b2f21263fdb4f1c61eea3fcd76804c776de2395b13dfbe1d8ca0"
+    },
+    {
+      "path": "lib/arm64-v8a/libjiagu_sdk_OSETSDKProtected.so",
+      "size": 765640,
+      "compressed": 765640,
+      "sha256": "cde21a615447beac4c589dc4d8895bce1ac548320338fe668d6c7a7325b19910"
+    },
+    {
+      "path": "lib/arm64-v8a/libjiagu_sdk_pp_hlsProtected.so",
+      "size": 759104,
+      "compressed": 759104,
+      "sha256": "137b70530423379b1a6827b2e602c831ddfb1821e0d80e860281c1488ef77494"
+    },
+    {
+      "path": "lib/arm64-v8a/libnms.so",
+      "size": 293672,
+      "compressed": 293672,
+      "sha256": "fdb2c5837c5f59ce374bfddb933feb4f3c66c78c6c2e9e837f9c2cdb63241eb3"
+    },
+    {
+      "path": "lib/arm64-v8a/libpglarmor.so",
+      "size": 68600,
+      "compressed": 68600,
+      "sha256": "c590266c06f99a194ff209b9c32036191903f0cbe3421919df540851b3bb958c"
+    },
+    {
+      "path": "lib/arm64-v8a/libpl_droidsonroids_gif.so",
+      "size": 41040,
+      "compressed": 41040,
+      "sha256": "c0a9f24e081f56a7499f3f1b4b7c642b17dabc01fefd119049b8c49cd105d0a6"
+    },
+    {
+      "path": "lib/arm64-v8a/libpp_hls.so",
+      "size": 2913576,
+      "compressed": 2913576,
+      "sha256": "2c3b7daf4a319b23de259a9b18904ebf082f1690ba832ba954ddc0417b19e9b0"
+    },
+    {
+      "path": "lib/arm64-v8a/libsls_producer.so",
+      "size": 825280,
+      "compressed": 825280,
+      "sha256": "b98d42e5c6d8b436091dfbb1e01d5a8dd4a269de4870c53e5d7afeb291e62138"
+    },
+    {
+      "path": "lib/arm64-v8a/libtobEmbedPagEncrypt.so",
+      "size": 8304,
+      "compressed": 8304,
+      "sha256": "d1a8cbbcd4982679b44c5e8cb5480526c8f50b484f744f4e18b49585792bc255"
+    },
+    {
+      "path": "lib/arm64-v8a/libtt_ugen_layout.so",
+      "size": 440672,
+      "compressed": 440672,
+      "sha256": "6356784adf27dac5d18cd14a052d4ab9c161fb74eb4df3d4107d00f2549edeb2"
+    },
+    {
+      "path": "lib/armeabi-v7a/libapminsighta.so",
+      "size": 85512,
+      "compressed": 85512,
+      "sha256": "bb08cd264170375bb94ac11ec08fb3c161b4ee72a376cf05aceb7c0f0a13db08"
+    },
+    {
+      "path": "lib/armeabi-v7a/libapminsightb.so",
+      "size": 100368,
+      "compressed": 100368,
+      "sha256": "ffae9546e59fc4e136dc9cfd54451a131c7e523454fba45e36299d4e3f60b0a5"
+    },
+    {
+      "path": "lib/armeabi-v7a/libapplovin-native-crash-reporter.so",
+      "size": 500664,
+      "compressed": 500664,
+      "sha256": "26814da52e1ed103b7adba975f5214b8f5fea21209efcd8dea1d0bb41e343d7c"
+    },
+    {
+      "path": "lib/armeabi-v7a/libbuffer_pgl.so",
+      "size": 6580,
+      "compressed": 6580,
+      "sha256": "1959f8616e7ed8ae3a4c4edc4bb557c55d1fea3de0096b3842e37f42e2e7222a"
+    },
+    {
+      "path": "lib/armeabi-v7a/libfile_lock_pgl.so",
+      "size": 4704,
+      "compressed": 4704,
+      "sha256": "f9e3402f0cff891a4dcf38e7c1876c889b97ab61daa426fe36ca28b28c1fed85"
+    },
+    {
+      "path": "lib/armeabi-v7a/libjiagu_sdk_OSETSDKProtected.so",
+      "size": 619108,
+      "compressed": 619108,
+      "sha256": "7a54ea98d8f11e4573397295f37eb66eee8e30fde5c8237e81036665070ceb3c"
+    },
+    {
+      "path": "lib/armeabi-v7a/libjiagu_sdk_pp_hlsProtected.so",
+      "size": 619608,
+      "compressed": 619608,
+      "sha256": "01ac2b74c2e180e1d3777bf5f748046932f2f9e7028f299574cae9b41a0202c0"
+    },
+    {
+      "path": "lib/armeabi-v7a/libnms.so",
+      "size": 194824,
+      "compressed": 194824,
+      "sha256": "8ca5de87bfb2af55b06167c6edbc78c7492d65a8e135159e515a7e338976d420"
+    },
+    {
+      "path": "lib/armeabi-v7a/libpglarmor.so",
+      "size": 46972,
+      "compressed": 46972,
+      "sha256": "4c6b307d2c0a500513c2051d0db21a432ce354617ce21c49588a11c18583dfe4"
+    },
+    {
+      "path": "lib/armeabi-v7a/libpl_droidsonroids_gif.so",
+      "size": 30156,
+      "compressed": 30156,
+      "sha256": "288c8ffd2304106924d36eeda7374f90049446192ac3c8de914cb19eb6d84734"
+    },
+    {
+      "path": "lib/armeabi-v7a/libpp_hls.so",
+      "size": 2096276,
+      "compressed": 2096276,
+      "sha256": "3e4c1289844e6d4a5e2621c35196b5d8bf8ce42635dbe801ba850b05f758fb53"
+    },
+    {
+      "path": "lib/armeabi-v7a/libsls_producer.so",
+      "size": 591456,
+      "compressed": 591456,
+      "sha256": "c3b9a1ddd935e70f9015bedf51dc64aed6c8b835c8b3612277c5caa6025fc37c"
+    },
+    {
+      "path": "lib/armeabi-v7a/libtobEmbedPagEncrypt.so",
+      "size": 5860,
+      "compressed": 5860,
+      "sha256": "a76bf5450ec359d6412c8b4b7be49e1aecde431e031c69adb7910f21b81904ca"
+    },
+    {
+      "path": "lib/armeabi-v7a/libtt_ugen_layout.so",
+      "size": 342084,
+      "compressed": 342084,
+      "sha256": "368f2e815971bcecb8804d23c8f1e54e758923630d247e9c2d54d090fb2495ed"
+    }
+  ]
+}

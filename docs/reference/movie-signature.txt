@@ -1,0 +1,17 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: ST=movieph, L=movieph, O=movieph, OU=movieph, CN=movieph
+Signer #1 certificate SHA-256 digest: 0f36ffe7360f6e3fc67dab950441cc6ad9b23e572d26e5405e87254f6ccdd409
+Signer #1 certificate SHA-1 digest: 0a55457e044fdcb08226f278d89f8cde4afe2ce8
+Signer #1 certificate MD5 digest: dfb5009f9a1f6c700766b6236b750bc1
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: 761752deaf46c68d568491570fcb9c2be719c7bd7addd33bed3ff6740cbf6d2f
+Signer #1 public key SHA-1 digest: 0353e60fc176ad1fa7609d8b47ec410ecef7ffe1
+Signer #1 public key MD5 digest: 29a5ebee564c058ec8a617932fecf7e9

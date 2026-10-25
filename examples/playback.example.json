@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "contentId": "example-title:episode-1",
+  "title": "Your title",
+  "sources": [
+    {
+      "id": "original-source-id",
+      "label": "Original",
+      "url": "https://media.example.invalid/original/master.m3u8",
+      "mimeType": "application/x-mpegURL",
+      "headers": {}
+    },
+    {
+      "id": "sub-source-id",
+      "label": "Sub",
+      "url": "https://media.example.invalid/sub/master.m3u8",
+      "mimeType": "application/x-mpegURL",
+      "headers": {}
+    }
+  ]
+}
