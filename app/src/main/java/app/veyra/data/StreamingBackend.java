@@ -1,6 +1,11 @@
 package app.veyra.data;
-import app.veyra.model.PlaybackRequest;
-/** Implement after tracing authenticated catalog/episode/source responses from the existing backend. */
+import org.json.JSONArray;
+import org.json.JSONObject;
+/** UI-independent catalog and playback boundary; implementations preserve provider identities. */
 public interface StreamingBackend {
-    PlaybackRequest resolve(String contentId, String episodeId) throws Exception;
+    JSONArray channels() throws Exception;
+    JSONArray catalog(String channel,int page) throws Exception;
+    Object search(String text,int page) throws Exception;
+    JSONObject detail(String id,String audioType,String kind) throws Exception;
+    String playbackJson(JSONObject detail,JSONObject episode,String sourceLabel) throws Exception;
 }

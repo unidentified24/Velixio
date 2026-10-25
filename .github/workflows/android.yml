@@ -24,4 +24,4 @@ jobs:
           mkdir -p build/contract-tests
           javac -d build/contract-tests app/src/main/java/app/veyra/model/*.java tests/ContractTest.java
           java -cp build/contract-tests ContractTest
-      - run: gradle --no-daemon :app:assembleDebug :app:lintDebug
+      - run: gradle --no-daemon :app:assembleDebug :app:lintDebug :app:testDebugUnitTest

@@ -1,43 +1,29 @@
 # Veyra implementation roadmap
 
-## 0 — Baseline (this commit)
-- [x] Record APK identities, differences and security concerns.
-- [x] Native Android project and Media3 player integration.
-- [x] Immutable playback/source contract and preservation tests.
-- [x] Local playback-file import with Original/Sub-style source selection.
-- [ ] Test playback on an Android device with authorized real content.
+## Implemented and checked in code
+- [x] APK comparison and client credit-system trace.
+- [x] Both movie/TV catalog protocols, separate provider sessions, combined browse/search and editions.
+- [x] Newer short-drama catalog, search and episode-detail mapping.
+- [x] Media3 player, source refresh, resume, quality/audio/embedded-caption controls.
+- [x] Android PiP mini-player and media-session play/pause controls.
+- [x] Saved titles, artwork, pagination, partial-backend errors and bounded input handling.
+- [x] Private native SDK wrapper/resource candidate; no secrets or SDK binaries committed.
+- [x] Debug build, lint and contract/JVM checks.
 
-## 1 — Same backend
-- [ ] Recover and document authenticated catalog/detail/episode/source API contracts.
-- [ ] Establish server support for Veyra's new package and signing identity.
-- [ ] Map the exact Original/Sub semantics.
-- [ ] Implement backend adapter with response fixtures and expiry handling.
-- [ ] Verify media format/proxy/DRM compatibility.
-- [ ] Verify stream/rendition parity against both original apps.
+## Required before semi-final acceptance
+- [ ] Working ARM Android runtime: current hardware emulator cannot start, and software emulation exited before boot.
+- [ ] Confirm native SDK load/verify/resource paths with Veyra's package/signing identity.
+- [ ] Verify older provider configuration with the newer engine, multiple-provider behavior, native background activity and cleanup.
+- [ ] Play representative movies, TV episodes, anime and short dramas from both libraries.
+- [ ] Verify actual Original/Sub choices, exact streams/renditions, audio and embedded/sidecar captions.
+- [ ] Device test PiP entry/exit/play-pause/close, seeking, rotation, process death, expiry and network recovery.
+- [ ] Exercise zero-credit/expired legacy states without client gates; surface genuine server authorization failures.
+- [ ] Resolve any server/native compatibility failure. No assumed success from catalog URLs or APK compilation.
 
-## 2 — Product
-- [ ] Catalog, search, details, seasons/episodes and watch history.
-- [ ] Modern full-screen player, explicit quality/audio/subtitle menus and gestures.
-- [ ] Persistent resume, next episode, Picture-in-Picture and accessibility.
-- [ ] Owner-approved offline/casting functionality.
+## Release
+- [ ] Review/update target SDK and dependencies; complete accessibility and device compatibility checks.
+- [ ] Generate complete dependency/license inventory and obtain native redistribution clearance.
+- [ ] Select license for owned source and prepare private release signing.
+- [ ] Publish or change repository visibility only on explicit owner request.
 
-## 3 — Release
-- [ ] Upgrade target SDK/build dependencies and run compatibility tests.
-- [ ] Real-device playback and lifecycle testing.
-- [ ] Dependency/license inventory, attribution and source-release review.
-- [ ] Select an open-source license for owned code.
-- [ ] Release signing through CI secrets; no keys in Git.
-- [ ] Publish only after an explicit request to change repository visibility.
-
-Do not replicate the old trust-all certificate/hostname checks. No ad SDKs or analytics are needed for the player foundation.
-
-## Owner decisions: credit-free playback, APK-only reconstruction
-- Inputs are limited to the two APKs; no backend source will be supplied.
-- Remove viewing credits and their acquisition/spending flows from the replacement client.
-- Keep legitimate login/session and stream-authorization mechanisms intact.
-- Do not inherit reward-ad prerequisites, earned-time exhaustion or episode locks from the old clients.
-- Verify server compatibility without spoofed purchases/rewards or invented VIP claims.
-- No previews or owner testing until the semi-final checkpoint.
-
-### Semi-final checkpoint
-Catalog/search/details/episodes must be connected; Original/Sub mappings verified; real streams play and seek; source changes preserve position; quality/audio/subtitle parity has been checked; zero-credit/expired-earned-time legacy states do not introduce client gates; genuine expired authorization still produces correct reauthentication or URL refresh; no unresolved server credit denial is hidden; install/lifecycle/error tests pass. Only then offer a testing build.
+Only the two APKs are reconstruction inputs; do not request backend source or secrets. No user previews or testing requests before semi-final acceptance. Full streaming parity is not yet established.

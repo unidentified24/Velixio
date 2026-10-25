@@ -20,6 +20,21 @@ public final class ContractTest {
         rejects(()->new StreamSource("x","x","https://u:p@media.example.invalid/a","video/mp4",Map.of()));
         rejects(()->new StreamSource("x","x",url,"video/mp4",Map.of("X-Test","a\r\nInjected: b")));
         rejects(()->new StreamSource("x","x",url,"text/html",Map.of()));
+        check(PipPolicy.autoEnter(true,false,false,false));
+        check(!PipPolicy.autoEnter(false,false,false,false));
+        check(!PipPolicy.autoEnter(true,true,false,false));
+        check(!PipPolicy.autoEnter(true,false,true,false));
+        check(!PipPolicy.autoEnter(true,false,false,true));
+        check(PipPolicy.ratioThousandths(1920,1080,1)==1778);
+        check(PipPolicy.ratioThousandths(1080,1920,1)==563);
+        check(PipPolicy.ratioThousandths(10000,1,1)==2390);
+        check(PipPolicy.ratioThousandths(1,10000,1)==420);
+        check(PipPolicy.ratioThousandths(0,0,1)==1778);
+        check(PipPolicy.ratioThousandths(1920,1080,Float.NaN)==1778);
+        rejects(()->new StreamSource("x","x",url,"video/mp4",Map.of("Host","another.invalid")));
+        rejects(()->new StreamSource("x","x",url,"video/mp4",Map.of("Authorization","a\u0000b")));
+        rejects(()->new StreamSource("x","x","http://127.0.0.1:9999/resource.m3u8?src=x","application/x-mpegURL",Map.of()));
+        rejects(()->StreamSource.localProxy("x","x","http://evil.invalid:9999/resource.m3u8?src=x","application/x-mpegURL"));
         System.out.println(checks+" contract checks passed.");
     }
 }

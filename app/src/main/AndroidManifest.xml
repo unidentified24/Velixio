@@ -1,9 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
     <application android:label="Veyra" android:theme="@style/Theme.Veyra"
-        android:allowBackup="false" android:usesCleartextTraffic="false"
+        android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@drawable/ic_veyra" android:supportsRtl="true">
-        <activity android:name=".PlayerActivity" android:exported="false" />
+        <activity android:name=".PlayerActivity" android:exported="false" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

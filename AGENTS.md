@@ -13,3 +13,9 @@
 - Preserve authentication/session tokens and signed playback URLs; these are not viewing credits.
 - Do not forge rewards, purchases or VIP state to obtain a server authorization. Report any server-enforced incompatibility and keep normal error handling.
 - No user-facing preview APKs, screenshots or testing requests until semi-final acceptance criteria are met, unless the owner changes this preference. Internal builds/tests continue.
+
+- Live init/catalog tests now succeeded for both providers; newer short-drama detail calls also succeeded. This is not proof of media playback.
+- Keep both provider editions and short-drama IDs distinct. Do not silently hide partial backend failures or merge different content just because numeric IDs match.
+- Private assets/native libraries live under ignored private/. Never upload them or real response captures. The current native bundle is a candidate: older configuration compatibility and all device playback remain unverified.
+- PiP must retain playback across onPause, release onStop, preserve video aspect ratio and disable automatic entry when paused/ended/failed. No overlay permission.
+- Local-proxy playback entries are internal-only and must match the active native port; user playback-file imports must reject them.

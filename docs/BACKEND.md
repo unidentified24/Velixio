@@ -1,42 +1,36 @@
-# Backend compatibility contract
+# Backend reconstruction contract
 
-## Non-negotiable behavior
-Preserve catalog/content IDs, episode IDs, source IDs, complete signed media URLs, required headers and server-provided renditions. Do not substitute another content provider, proxy or transcode streams to achieve the redesign.
+## Recovered and exercised
+Both APKs use form-encoded POST requests with app/package/version, installation ID, time, session token and a request signature. The normal init response supplies the session token. Responses use an AES-CBC envelope; success is `code=10000`, with payload in `result`. The APK's existing wire cryptography is retained for interoperability, not used as a new security design. Standard HTTPS verification remains enabled.
 
-Original/Sub must be mapped from actual backend records. They could represent alternate source lists, different audio/video editions, burned-in subtitles or separate subtitle tracks. The user-visible labels alone do not establish which. Keep source switching separate from Media3 text-track selection.
+- Both: `/api/public/init`, `/api/channel/get_list`, `/api/channel/get_info` returned successful live responses.
+- Newer: `/api/search/result` returned 20 search records in the check.
+- Newer short dramas: `/api/playlet_channel/list`, `/api/playlet_channel/info`, `/api/playlet/screen`, `/api/playlet/info` returned successful responses. One detail response contained 39 episodes. This is catalog evidence, not playback evidence.
 
-## Initial boundary
-`StreamingBackend.resolve(contentId, episodeId)` returns `PlaybackRequest`.
-It is an interface, not a working adapter. The JSON importer supplies the same model for player development.
-There is no live catalog API call or embedded app credential in the starter.
+Catalogs differ: the original has Reality-TV where the newer has Filipino; the sampled movie pages contained 33 and 31 unique IDs, with 22 common, 11 original-only and 9 newer-only. These are changing samples, not a full inventory.
 
-Current fields:
-- schemaVersion: 1
-- contentId: stable episode/content identity
-- title: display title
-- sources: unique id, original label, exact HTTPS URL, explicit MIME type and required string headers
+## Client boundary
+`StreamingBackend` separates catalog/detail and playback resolution from UI. `LegacyBackend` keeps independent provider sessions; `CombinedCatalog` combines browse/search results while preserving provider editions, short-drama identity and incomplete-result warnings. Session tokens remain in memory. Random installation IDs, saved titles and resume positions remain in app-private storage.
 
-Do not decode/re-encode signed URLs. Keep ordering and escaping. Headers apply to the selected Media3 HTTP data-source factory, including requests for manifests/segments; confirm per-host/header scope before production, especially cross-host redirects.
-Never put reusable credentials or captured playback responses into Git.
+`audio_type_option` contains backend source choices (`type`, `type_name`); `audio_type` is the selected value. Preserve these labels rather than assuming Sub is an embedded subtitle toggle. Movie detail includes `vod_collection`; series entries use `vod_id` and `series`. Short-drama records are normalized from `title`, `cover`, `blurb`, and `collection[].video_url` without modifying the source URL.
 
-## Work remaining
-1. Trace the original app's catalog, detail, episode and source-resolution calls.
-2. Establish authentication/session issuance, signing, expiry and any app-signature binding from APK code and observed authorized traffic.
-3. Capture redacted fixtures and map Original/Sub to response fields.
-4. Determine whether legacy `nt-http`, local HLS proxy or native `pp_hls` formats need a documented adapter. Do not pass unknown schemes to ExoPlayer.
-5. Handle expiring URLs by resolving again, rather than repeatedly retrying an expired URL.
-6. Add sidecar subtitle metadata and DRM/license configuration if actual streams require them.
-7. Test manifest and segment hosts, redirects, cookies, content types, range requests and seeking.
-8. Match every advertised rendition and source against the old apps.
+## Native authorization and media adapter
+The movie detail path requires a second signature obtained from the APK's local native service: `/control?msg=verify&device_id=<installation ID plus content ID>&ts=<time>`. That value is sent with `cur_time`, `vod_id` and `audio_type` to `/api/vod/info_new`. It is separate from the HTTP request signature.
 
-The initial player intentionally accepts HTTPS only. If the existing backend requires HTTP, identify exact domains and agree a scoped compatibility configuration; do not globally disable TLS verification or cleartext protection.
-It does not yet support DRM, sidecar captions, downloads, casting or native proprietary stream formats.
+The SDK receives `p2p_config` from `/api/public/get_sys_conf` and starts a local port. The original application encodes the exact backend URL as Base64 and passes it to `/resource.m3u8?src=...` or `/resource.mp4?src=...`. The candidate follows this interface; it does not strip `nt-` prefixes, rewrite signed queries, substitute another media host or transcode content.
 
-## Parity acceptance matrix
-For each representative movie/episode, record: original content ID; backend source ID; Original/Sub label; fresh stream URL fingerprint (not token); manifest renditions; selected codec/resolution/bitrate; audio/subtitle availability; startup, seeking and expiry behavior.
-Exercise both source choices, multiple seasons/episodes and network recovery. A successful APK build is not proof of streaming parity.
+Only active, registered loopback adapter ports are accepted internally. Playback-file imports cannot request loopback mode. Java network configuration permits cleartext only for `127.0.0.1`; native SDK networking is outside Java's network-security controls and still requires auditing.
 
-## Monetization boundary
-The owner explicitly removes coins/credits used to watch videos. Preserve the media/authentication protocol, not the old credit economy. No credit-balance fetch, debit, reward-ad completion, viewing-minute balance or order/payment call may become a client prerequisite to starting or continuing playback. Actual server denials must remain errors rather than being converted into invented playable URLs or success responses.
-The two APKs are the only reconstruction inputs. Backend source/admin access will not be provided. APK-only client changes cannot establish that server-side credit enforcement has been disabled; this is a runtime compatibility question.
-See CREDIT-SYSTEM.md and reference/api-routes.csv for recovered evidence.
+## Private inputs
+Ignored asset profiles contain `baseUrl`, `appId`, `packageName`, `version`, `channel`, `signingSecret`, `responseKey`, `responseIv`, `nativeKey`, `nativePackage`, `nativeVersion`. Do not include a session token or a fixed device ID in a build profile. Never commit the values. The explicit owner authorization covers local extraction and ordinary compatibility calls, not publishing credentials or forging rewards/purchases.
+
+The current private build uses the newer ARM SDK binary. Older SDK version/config compatibility is a candidate path, not verified. The original older SDK also has a protection initializer absent from the newer Java wrapper; do not assume the two native bundles are interchangeable.
+
+## Unresolved acceptance checks
+- Native load, package/signature binding, verify signature, HTTP/native resource playback and provider switching on ARM Android.
+- Movies, TV, anime and short dramas across both providers; actual Original/Sub variants and rendition/audio/caption equivalence.
+- Expiry, session refresh, lifecycle restoration and native service cleanup.
+- Sidecar subtitle URLs, DRM and any formats beyond currently supported Media3/native behavior.
+- No server credit denial may be hidden. The client has no credit gates; backend enforcement has not been disabled or proven absent for all content.
+
+A direct bounded request to one returned short-drama HTTP media URL returned 403. The cause is unverified; this was not treated as evidence of a credit lock or worked around. The original native adapter path remains the required playback test.

@@ -1,53 +1,34 @@
 # Veyra
-A modern Android streaming app with a redesigned interface and player, designed to preserve the existing content, servers, quality options, and Original/Sub choices.
+A private Android rebuild with a combined catalog, credit-free interface and a modern Media3 player.
 
-**Status: initial player foundation. The production catalog/backend is not connected yet.**
-Repository URL: `unidentified24/Verya`. Product name: **Veyra**.
+**Status: integration build, not a finished release.** Both original backends respond to normal session and catalog requests. Native playback authorization, actual video playback, PiP on a device and full quality/content parity remain unverified. No preview is being delivered before the semi-final checkpoint.
 
-## Included
-- Native Android starter with a dark violet interface.
-- Media3 ExoPlayer for HTTPS HLS, DASH and MP4.
-- Backend-neutral source contract preserving exact signed URLs, request headers and opaque source IDs.
-- Source selector for Original/Sub (or any labels returned by the backend).
-- Embedded subtitle selection, normal player controls and playback speed controls.
-- Position and play/pause state retained when switching sources, rotating or temporarily leaving the activity.
-- A playback-file importer for testing real streams before catalog integration.
-- APK comparison, security findings and migration plan.
+## Implemented
+- Both original movie/TV catalog connections, combined browsing and search; overlapping titles retain their separate library editions.
+- Newer app's separate short-drama browse, search and episode-detail adapter.
+- Poster artwork, pagination, saved titles and clear partial-library failure states.
+- Episode/season and backend-provided source choices; source refresh retains playback position.
+- Media3 HLS, DASH and MP4 playback, track quality/audio/captions, speed controls and persistent resume positions.
+- Android picture-in-picture mini player: manual button, automatic entry while playing on supported devices, media-session play/pause and aspect-ratio preservation.
+- No viewing-credit wallet, debit, reward-ad prerequisite, earned-time countdown or invented VIP/purchase state.
+- HTTPS certificate/hostname verification, bounded inputs and responses, origin-scoped media headers, private local state and backup exclusions.
 
-## Build
-Use JDK 17, Android SDK Platform 35 and Gradle 8.9:
+## Build and checks
+Use JDK 17, Android SDK 35 and the included Gradle 8.9 wrapper:
 ```
-gradle :app:assembleDebug :app:lintDebug
-```
-The Gradle wrapper is included; use `./gradlew` on macOS/Linux or `gradlew.bat` on Windows.
-Android Studio can open this folder. It generates the machine-specific `local.properties` SDK path.
-The initial build pins AGP 8.7.3 / Media3 1.8.1. This is a development baseline, not a current Play Store release configuration.
-Upgrade and test the target SDK and current Media3 release before distribution.
-
-## Internal developer playback harness
-Copy `examples/playback.example.json` to a private file and replace its reserved `.invalid` URLs with fresh, authorized backend-resolved HTTPS streams.
-Keep all signed query parameters and required headers exactly as issued.
-Transfer the JSON file to the test device, open Veyra and choose **Open playback file**.
-The example is documentation and is intentionally not playable.
-Playback files may contain temporary credentials; never commit real ones.
-
-## Test the backend contract
-With JDK 17:
-```
+./gradlew :app:assembleDebug :app:lintDebug :app:testDebugUnitTest
 javac -d build/contract-tests app/src/main/java/app/veyra/model/*.java tests/ContractTest.java
 java -cp build/contract-tests ContractTest
 ```
-Tests cover exact URL/header preservation, immutable source lists, source identity and invalid inputs.
+On Windows use `gradlew.bat`. Android Studio can open this folder. Dependencies remain pinned to the current development baseline (AGP 8.7.3 / Media3 1.8.1); release compatibility/dependency upgrades are still pending.
 
-## Delivery checkpoint
-The owner does not want previews until semi-final testing. Internal builds and automated tests continue; the playback-file importer is a development harness, not the intended final catalog experience.
-Veyra will have no viewing-credit wallet, spending or reward-ad unlock requirement. Authentication and signed stream URLs remain necessary.
+## Private runtime inputs
+The source checkout builds without secrets. Live integration builds additionally use ignored `private/assets/backend.json`, `private/assets/backend-classic.json`, and `private/jniLibs/<abi>/` supplied locally from the owner's APKs. These are already prepared in the owner's local workspace. They are not uploaded to GitHub. See [backend contract](docs/BACKEND.md).
 
-## Next
-See [roadmap](docs/ROADMAP.md), [backend contract](docs/BACKEND.md) and [APK analysis](docs/APK-analysis-and-comparison.md).
-Actual playback against the old servers, Original/Sub equivalence and quality parity are not verified yet.
-No transcoding is introduced; adaptive selection still depends on the manifest, network and device.
+The native engine is ARM-only. The current local candidate uses the newer APK's native engine with the recovered provider configurations. Compatibility with the older configuration, simultaneous provider use, package/signing identity and native lifecycle behavior require Android runtime testing. This must not be presented as proven parity.
 
-## License
-Currently private; no project-wide open-source license has been granted.
-Third-party components retain their own licenses. See [third-party notes](THIRD_PARTY_NOTICES.md).
+An internal playback-file importer remains available in the menu. Example URLs are deliberately unplayable documentation; no sample provider replaces the original service.
+
+## Verification and release
+See [verification record](docs/VERIFICATION.md), [security review](docs/SECURITY.md), [credit-system trace](docs/CREDIT-SYSTEM.md) and [roadmap](docs/ROADMAP.md).
+The repository remains private. No project-wide open-source license has been granted; third-party dependencies and the private native SDK retain their own licensing terms. See [third-party notes](THIRD_PARTY_NOTICES.md).

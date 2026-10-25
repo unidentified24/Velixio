@@ -51,7 +51,7 @@ DeepCine routes relevant to further investigation:
 | `netCineFungetInitUserDevice` | POST `/api/public/init` | Client initialization declaration |
 | `getLoginUserSubmit` | POST `/api/public/login` | Login declaration |
 
-No live API calls, purchases, reward claims, balance changes or account alterations were performed for this trace. These routes are not a tested integration contract yet.
+The initial credit trace was static. Later, with explicit owner authorization, ordinary session/catalog and short-drama detail calls were exercised; see VERIFICATION.md. No purchases, reward claims, balance-debit calls or forged entitlements were submitted.
 
 ## Removal design
 
