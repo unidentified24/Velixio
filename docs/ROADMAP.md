@@ -30,3 +30,14 @@
 - [ ] Publish only after an explicit request to change repository visibility.
 
 Do not replicate the old trust-all certificate/hostname checks. No ad SDKs or analytics are needed for the player foundation.
+
+## Owner decisions: credit-free playback, APK-only reconstruction
+- Inputs are limited to the two APKs; no backend source will be supplied.
+- Remove viewing credits and their acquisition/spending flows from the replacement client.
+- Keep legitimate login/session and stream-authorization mechanisms intact.
+- Do not inherit reward-ad prerequisites, earned-time exhaustion or episode locks from the old clients.
+- Verify server compatibility without spoofed purchases/rewards or invented VIP claims.
+- No previews or owner testing until the semi-final checkpoint.
+
+### Semi-final checkpoint
+Catalog/search/details/episodes must be connected; Original/Sub mappings verified; real streams play and seek; source changes preserve position; quality/audio/subtitle parity has been checked; zero-credit/expired-earned-time legacy states do not introduce client gates; genuine expired authorization still produces correct reauthentication or URL refresh; no unresolved server credit denial is hidden; install/lifecycle/error tests pass. Only then offer a testing build.

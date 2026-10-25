@@ -21,7 +21,7 @@ Never put reusable credentials or captured playback responses into Git.
 
 ## Work remaining
 1. Trace the original app's catalog, detail, episode and source-resolution calls.
-2. Establish authentication/session issuance, signing, expiry and any app-signature binding from owner-provided source or observed authorized traffic.
+2. Establish authentication/session issuance, signing, expiry and any app-signature binding from APK code and observed authorized traffic.
 3. Capture redacted fixtures and map Original/Sub to response fields.
 4. Determine whether legacy `nt-http`, local HLS proxy or native `pp_hls` formats need a documented adapter. Do not pass unknown schemes to ExoPlayer.
 5. Handle expiring URLs by resolving again, rather than repeatedly retrying an expired URL.
@@ -35,3 +35,8 @@ It does not yet support DRM, sidecar captions, downloads, casting or native prop
 ## Parity acceptance matrix
 For each representative movie/episode, record: original content ID; backend source ID; Original/Sub label; fresh stream URL fingerprint (not token); manifest renditions; selected codec/resolution/bitrate; audio/subtitle availability; startup, seeking and expiry behavior.
 Exercise both source choices, multiple seasons/episodes and network recovery. A successful APK build is not proof of streaming parity.
+
+## Monetization boundary
+The owner explicitly removes coins/credits used to watch videos. Preserve the media/authentication protocol, not the old credit economy. No credit-balance fetch, debit, reward-ad completion, viewing-minute balance or order/payment call may become a client prerequisite to starting or continuing playback. Actual server denials must remain errors rather than being converted into invented playable URLs or success responses.
+The two APKs are the only reconstruction inputs. Backend source/admin access will not be provided. APK-only client changes cannot establish that server-side credit enforcement has been disabled; this is a runtime compatibility question.
+See CREDIT-SYSTEM.md and reference/api-routes.csv for recovered evidence.

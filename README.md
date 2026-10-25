@@ -24,7 +24,7 @@ Android Studio can open this folder. It generates the machine-specific `local.pr
 The initial build pins AGP 8.7.3 / Media3 1.8.1. This is a development baseline, not a current Play Store release configuration.
 Upgrade and test the target SDK and current Media3 release before distribution.
 
-## Try the player
+## Internal developer playback harness
 Copy `examples/playback.example.json` to a private file and replace its reserved `.invalid` URLs with fresh, authorized backend-resolved HTTPS streams.
 Keep all signed query parameters and required headers exactly as issued.
 Transfer the JSON file to the test device, open Veyra and choose **Open playback file**.
@@ -38,6 +38,10 @@ javac -d build/contract-tests app/src/main/java/app/veyra/model/*.java tests/Con
 java -cp build/contract-tests ContractTest
 ```
 Tests cover exact URL/header preservation, immutable source lists, source identity and invalid inputs.
+
+## Delivery checkpoint
+The owner does not want previews until semi-final testing. Internal builds and automated tests continue; the playback-file importer is a development harness, not the intended final catalog experience.
+Veyra will have no viewing-credit wallet, spending or reward-ad unlock requirement. Authentication and signed stream URLs remain necessary.
 
 ## Next
 See [roadmap](docs/ROADMAP.md), [backend contract](docs/BACKEND.md) and [APK analysis](docs/APK-analysis-and-comparison.md).
