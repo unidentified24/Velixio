@@ -1,7 +1,7 @@
 # Veyra
 A private Android rebuild with a combined catalog, credit-free interface and a modern Media3 player.
 
-**Status: integration build, not a finished release.** Both original backends respond to normal session and catalog requests. Native playback authorization, actual video playback, PiP on a device and full quality/content parity remain unverified. No preview is being delivered before the semi-final checkpoint.
+**Status: integration build, not a finished release.** Both original backends respond to normal session and catalog requests. Public-fixture decoding, seeking and PiP passed on an Android 11 emulator. Native playback authorization and actual original-provider quality/content parity remain unverified. No preview is being delivered before the semi-final checkpoint.
 
 ## Implemented
 - Both original movie/TV catalog connections, combined browsing and search; overlapping titles retain their separate library editions.

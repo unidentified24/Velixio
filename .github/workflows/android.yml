@@ -33,6 +33,11 @@ jobs:
       - run: gradle --no-daemon :app:assembleDebug :app:lintDebug :app:testDebugUnitTest
 
   device:
+    name: Android ${{ matrix.api }} playback
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [30, 35]
     needs: check
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -57,7 +62,7 @@ jobs:
       - name: Verify decoder and picture-in-picture on Android
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
+          api-level: ${{ matrix.api }}
           arch: x86_64
           target: google_apis
           profile: pixel_2
