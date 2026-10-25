@@ -10,7 +10,7 @@ android {
         versionName '0.2.0-integration'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
-    sourceSets { main { assets.srcDirs += ["../private/assets"]; jniLibs.srcDirs += ["../private/jniLibs"] } }
+    sourceSets { main { assets.srcDirs += ["../private/assets"]; jniLibs.srcDirs += ["../private/engines/jniLibs"] } }
     testOptions {
         unitTests.includeAndroidResources = true
         unitTests.all {

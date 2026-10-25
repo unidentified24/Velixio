@@ -20,6 +20,7 @@ import androidx.media3.ui.PlayerView;
 import app.veyra.data.PlaybackJson;
 import app.veyra.data.LegacyBackend;
 import app.veyra.data.EpisodeSelection;
+import app.veyra.data.WatchHistory;
 import org.json.*;
 import java.util.concurrent.*;
 import app.veyra.model.*;
@@ -39,6 +40,7 @@ public final class PlayerActivity extends Activity {
     private int sourceIndex;
     private long position;
     private float speed=1f;
+    private TrackSelectionParameters trackPreferences;
     private boolean playWhenReady=true, enteringPip;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private final Runnable saveProgress=new Runnable() {
@@ -46,6 +48,7 @@ public final class PlayerActivity extends Activity {
     };
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
+        if(saved==null && getSharedPreferences("settings",MODE_PRIVATE).getBoolean("rememberSpeed",true))speed=getSharedPreferences("settings",MODE_PRIVATE).getFloat("speed",1f);
         if(saved!=null){position=saved.getLong("position",0);playWhenReady=saved.getBoolean("playing",true);speed=saved.getFloat("speed",1f);}
         else try{position=getSharedPreferences("resume",MODE_PRIVATE).getLong(new JSONObject(getIntent().getStringExtra("playback")).optString("contentId"),0);}catch(Exception ignored){}
         try { request=PlaybackJson.parseInternal(saved!=null && saved.containsKey("playback")?saved.getString("playback"):getIntent().getStringExtra("playback")); }
@@ -85,6 +88,7 @@ public final class PlayerActivity extends Activity {
         });
     }
     private void recoverPlayback() {
+        if(resolving)return;resolving=true;
         LinearLayout loading=Ui.column(this);loading.addView(Ui.text(this,"Restoring playback…",22,Ui.INK));
         TextView message=Ui.text(this,"Reconnecting to the current episode",16,Ui.MUTED);loading.addView(message);
         Button back=Ui.button(this,"Back to library");back.setOnClickListener(v->finish());loading.addView(back);setContentView(loading);Ui.insets(this,loading,20);
@@ -96,10 +100,10 @@ public final class PlayerActivity extends Activity {
             PlaybackRequest restored=PlaybackJson.parseInternal(json);
             runOnUiThread(()->{
                 if(isDestroyed() || isFinishing())return;
-                request=restored;sourceIndex=0;getIntent().putExtra("playback",json);
+                resolving=false;request=restored;sourceIndex=0;getIntent().putExtra("playback",json);
                 createPlayerUi();applyPlayerLayout();if(started)startPlayer();
             });
-        }catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed() && !isFinishing())message.setText("Playback could not be restored. Return to the title to reconnect.");});}});
+        }catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed() && !isFinishing()){resolving=false;message.setText("Playback could not be restored. Return to the title to reconnect.");}});}});
     }
     private Button action(LinearLayout row,String label,Runnable run) {
         Button b=Ui.button(this,label); b.setOnClickListener(v->run.run());
@@ -139,6 +143,7 @@ public final class PlayerActivity extends Activity {
         if(isDestroyed() || isFinishing())return;
         resolving=false;release();request=replacement;sourceIndex=0;
         if(offset!=0){position=getSharedPreferences("resume",MODE_PRIVATE).getLong(request.contentId,0);playWhenReady=true;}
+        if(trackPreferences!=null)trackPreferences=trackPreferences.buildUpon().clearOverrides().build();
         titleView.setText(request.title);
         getIntent().putExtra("playback",json).putExtra("audioType",type).putExtra("collection",collection).putExtra("variants",variants);
         if(started)startPlayer();
@@ -176,7 +181,9 @@ public final class PlayerActivity extends Activity {
     }
     private void startPlayer() {
         if(!started || request==null || player!=null || view==null || isFinishing()) return;
-        StreamSource source=request.sources.get(sourceIndex); sourceButton.setText(source.label+" ▾");
+        StreamSource source=request.sources.get(sourceIndex);
+        if(source.url.startsWith("http://127.0.0.1:") && !LegacyBackend.isActiveProxy(source.url)) {recoverPlayback();return;}
+        sourceButton.setText(source.label+" ▾");
         DataSource.Factory http=StreamHttp.factory(source);
         player=new ExoPlayer.Builder(this).setSeekBackIncrementMs(10000).setSeekForwardIncrementMs(10000).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).build();
         player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);
@@ -185,16 +192,29 @@ public final class PlayerActivity extends Activity {
             @Override public void onPlaybackStateChanged(int state) {
                 status.setText(state==Player.STATE_BUFFERING ? "Loading…" : state==Player.STATE_ENDED ? "Playback finished" : source.label);
                 syncSession(); updatePip();
+                if(state==Player.STATE_ENDED && getIntent().hasExtra("vodId") && getSharedPreferences("settings",MODE_PRIVATE).getBoolean("autoplay",false)) {
+                    remember();resolveSource(selectedType(),1);
+                }
             }
             @Override public void onIsPlayingChanged(boolean playing) { view.setKeepScreenOn(playing); syncSession(); updatePip(); }
             @Override public void onPlayWhenReadyChanged(boolean ready,int reason) { syncSession(); updatePip(); }
             @Override public void onVideoSizeChanged(VideoSize size) { updatePip(); }
-            @Override public void onPlaybackParametersChanged(PlaybackParameters params) { speed=params.speed; syncSession(); }
+            @Override public void onPlaybackParametersChanged(PlaybackParameters params) { speed=params.speed;if(getSharedPreferences("settings",MODE_PRIVATE).getBoolean("rememberSpeed",true))getSharedPreferences("settings",MODE_PRIVATE).edit().putFloat("speed",speed).apply();syncSession(); }
             @Override public void onPlayerError(PlaybackException error) {
                 status.setText("This stream could not play. It may have expired, lost its connection or require an unsupported format. Use Retry to reconnect."); syncSession(); updatePip();
             }
         });
-        player.setMediaItem(new MediaItem.Builder().setMediaId(request.contentId+":"+source.id).setUri(source.url).setMimeType(source.mimeType).build());
+        List<MediaItem.SubtitleConfiguration> captions=new ArrayList<>();
+        for(SubtitleTrack caption:source.subtitles)captions.add(new MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(caption.url)).setId(caption.id).setLabel(caption.label).setLanguage(caption.language.isEmpty()?null:caption.language).setMimeType(caption.mimeType).build());
+        if(trackPreferences==null) {
+            TrackSelectionParameters.Builder preferences=player.getTrackSelectionParameters().buildUpon();
+            int height=getSharedPreferences("settings",MODE_PRIVATE).getInt("qualityHeight",0);
+            if(height>0)preferences.setMaxVideoSize(Integer.MAX_VALUE,height);
+            if(height==-1)preferences.setForceHighestSupportedBitrate(true);
+            trackPreferences=preferences.build();
+        }
+        player.setTrackSelectionParameters(trackPreferences);
+        player.setMediaItem(new MediaItem.Builder().setMediaId(request.contentId+":"+source.id).setUri(source.url).setMimeType(source.mimeType).setSubtitleConfigurations(captions).build());
         view.setPlayer(player); player.seekTo(position); player.setPlaybackSpeed(speed); player.prepare(); player.setPlayWhenReady(playWhenReady);
         session=new MediaSession(this,"VeyraPlayer");
         session.setCallback(new MediaSession.Callback() {
@@ -253,10 +273,12 @@ public final class PlayerActivity extends Activity {
         android.content.SharedPreferences.Editor e=prefs.edit();
         if(prefs.getAll().size()>200)e.clear();
         e.putLong(request.contentId,current).apply();
+        if(getIntent().hasExtra("vodId"))WatchHistory.remember(this,getIntent().getStringExtra("provider"),getIntent().getStringExtra("kind"),getIntent().getStringExtra("vodId"),getIntent().getStringExtra("collection"),selectedType(),getIntent().getStringExtra("catalogTitle")==null?request.title:getIntent().getStringExtra("catalogTitle"),getIntent().getStringExtra("poster"),current,player.getDuration(),player.getPlaybackState()==Player.STATE_ENDED);
     }
     private void release() {
         handler.removeCallbacks(saveProgress);
         if(player==null)return;
+        trackPreferences=player.getTrackSelectionParameters();
         remember(); position=player.getPlaybackState()==Player.STATE_ENDED?0:Math.max(0,player.getCurrentPosition()); playWhenReady=player.getPlayWhenReady(); speed=player.getPlaybackParameters().speed;
         if(session!=null) { session.setActive(false); session.release(); session=null; }
         view.setPlayer(null); player.release(); player=null; view.setKeepScreenOn(false); updatePip();

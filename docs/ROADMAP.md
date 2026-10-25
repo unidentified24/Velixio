@@ -6,14 +6,16 @@
 - [x] Newer short-drama catalog, search and episode-detail mapping.
 - [x] Media3 player, source refresh, resume, quality/audio/embedded-caption controls and identity-safe previous/next episode navigation.
 - [x] Android PiP mini-player and media-session play/pause controls.
-- [x] Saved titles, artwork, pagination, partial-backend errors and bounded input handling.
+- [x] Poster-grid discovery, Continue watching, saved titles, pagination, partial-backend errors and bounded input handling.
+- [x] Optional next-episode autoplay, remembered speed, default quality and HTTPS sidecar-caption wiring.
+- [x] Separate per-provider native engine services, original binaries and idle cleanup (awaiting final verification).
 - [x] Private native SDK wrapper/resource candidate; no secrets or SDK binaries committed.
 - [x] Debug build, lint, contract/backend/episode checks and six simulated Android lifecycle regressions.
 
 ## Required before semi-final acceptance
 - [ ] Working ARM Android runtime: current hardware emulator cannot start, software emulation exited before boot, and this Windows launcher rejects the downloaded ARM64 image.
 - [ ] Confirm native SDK load/verify/resource paths with Veyra's package/signing identity.
-- [ ] Verify older provider configuration with the newer engine, multiple-provider behavior, native background activity and cleanup.
+- [ ] Verify both original engines, provider switching, service reconnection, native background activity and cleanup.
 - [ ] Play representative movies, TV episodes, anime and short dramas from both libraries.
 - [ ] Verify actual Original/Sub choices, exact streams/renditions, audio and embedded/sidecar captions.
 - [ ] Device test PiP entry/exit/play-pause/close, seeking, rotation, process death, expiry and network recovery.

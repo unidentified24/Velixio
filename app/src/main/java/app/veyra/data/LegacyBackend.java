@@ -23,7 +23,7 @@ public final class LegacyBackend implements StreamingBackend {
     private final JSONObject config;
     private final String deviceId;
     private String token="", nativeConfig="";
-    private volatile int port;
+    private final NativeEngine engine;
     public static LegacyBackend get(Context context) throws Exception {return get(context,"current");}
     public static synchronized LegacyBackend get(Context context,String provider) throws Exception {
         if(!provider.equals("current") && !provider.equals("classic"))throw new IOException("Unknown catalog");
@@ -31,7 +31,7 @@ public final class LegacyBackend implements StreamingBackend {
         if(value==null){value=new LegacyBackend(context.getApplicationContext(),provider);instances.put(provider,value);}return value;
     }
     private LegacyBackend(Context context,String provider) throws Exception {
-        this.context=context;this.provider=provider;
+        this.context=context;this.provider=provider;this.engine=NativeEngine.get(context,provider);
         try(InputStream in=context.getAssets().open(provider.equals("classic")?"backend-classic.json":"backend.json")) { config=new JSONObject(read(in,65536)); }
         URI base=URI.create(config.getString("baseUrl"));
         if(!"https".equals(base.getScheme()) || base.getHost()==null || base.getRawUserInfo()!=null)throw new IOException("Invalid backend configuration");
@@ -75,15 +75,9 @@ public final class LegacyBackend implements StreamingBackend {
         return (JSONObject)request("/api/vod/info_new",map("vod_id",id,"audio_type",audioType,"cur_time",time,"sign",signature));
     }
     private int streamingPort() throws Exception {
-        if(port>0)return port;
+        if(engine.port()>0)return engine.port();
         if(nativeConfig.isEmpty())nativeConfig=String.valueOf(request("/api/public/get_sys_conf",map("conf_key","p2p_config")));
-        try {
-            File directory=new File(context.getFilesDir(),"streaming");
-            if(!directory.isDirectory() && !directory.mkdirs())throw new IOException("Cannot prepare streaming storage");
-            port=new com.pp.hls().load(config.getString("nativeKey"),config.getString("nativePackage"),config.getString("nativeVersion"),directory.getAbsolutePath(),directory.getAbsolutePath(),nativeConfig,"1");
-        } catch(LinkageError e) { throw new IOException("The original streaming component is unavailable on this device architecture"); }
-        if(port<1 || port>65535) {port=0;throw new IOException("The original streaming component could not initialize");}
-        return port;
+        return engine.start(nativeConfig);
     }
     public synchronized String playbackJson(JSONObject detail,JSONObject episode,String sourceLabel) throws Exception {
         String url=episode.optString("vod_url");
@@ -95,9 +89,16 @@ public final class LegacyBackend implements StreamingBackend {
         String mime=path!=null && path.toLowerCase(Locale.ROOT).endsWith(".mp4")?"video/mp4":"application/x-mpegURL";
         String proxy="http://127.0.0.1:"+localPort+(mime.equals("video/mp4")?"/resource.mp4?src=":"/resource.m3u8?src=")+Base64.encodeToString(url.getBytes(StandardCharsets.UTF_8),Base64.NO_WRAP);
         JSONObject source=new JSONObject().put("id",detail.optString("audio_type","0")).put("label",sourceLabel).put("url",proxy).put("mimeType",mime).put("localProxy",true);
+        String caption=episode.optString("srt_url","");
+        if(!caption.isEmpty())try {
+            URI uri=URI.create(caption);String captionPath=uri.getPath()==null?"":uri.getPath().toLowerCase(Locale.ROOT);
+            String captionMime=captionPath.endsWith(".vtt")?"text/vtt":captionPath.endsWith(".ttml") || captionPath.endsWith(".xml")?"application/ttml+xml":"application/x-subrip";
+            app.veyra.model.SubtitleTrack checked=new app.veyra.model.SubtitleTrack("sidecar","Additional captions",caption,captionMime,episode.optString("srt_language",""));
+            source.put("subtitles",new JSONArray().put(new JSONObject().put("id",checked.id).put("label",checked.label).put("url",checked.url).put("mimeType",checked.mimeType).put("language",checked.language)));
+        }catch(IllegalArgumentException ignored){ /* Preserve video if an optional caption URL is unsupported. */ }
         return new JSONObject().put("schemaVersion",1).put("contentId",provider+":"+detail.optString("_kind","movie")+":"+detail.optString("id")+":"+EpisodeSelection.key(episode)).put("title",detail.optString("vod_name","Video")+" · "+episode.optString("title","Episode")).put("sources",new JSONArray().put(source)).toString();
     }
-    public boolean ownsProxy(URI uri) { return port>0 && "http".equals(uri.getScheme()) && "127.0.0.1".equals(uri.getHost()) && uri.getPort()==port && ("/resource.m3u8".equals(uri.getPath()) || "/resource.mp4".equals(uri.getPath())); }
+    public boolean ownsProxy(URI uri) { int port=engine.port();return port>0 && "http".equals(uri.getScheme()) && "127.0.0.1".equals(uri.getHost()) && uri.getPort()==port && ("/resource.m3u8".equals(uri.getPath()) || "/resource.mp4".equals(uri.getPath())); }
     public static synchronized boolean isActiveProxy(String url) { try {for(LegacyBackend value:instances.values())if(value.ownsProxy(URI.create(url)))return true;return false;}catch(IllegalArgumentException e){return false;} }
     private Object request(String route,Map<String,String> fields) throws Exception {
         URL url=new URL(config.getString("baseUrl").replaceAll("/+$","")+route);

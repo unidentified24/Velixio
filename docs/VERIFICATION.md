@@ -1,3 +1,7 @@
+# Implementation-stage verification status
+
+The owner requested completing implementation before further tests. The latest changes (separate original native engines, idle cleanup, watch history, poster-grid UI, playback settings and HTTPS sidecar captions) are not covered by the earlier passing runs below. The updated app packages successfully with `:app:assembleDebug`. No unit, emulator or live-stream test was run after this implementation pass. Automatic workflow triggers have been switched to manual. Do not apply an earlier green result to these new changes.
+
 # Verification record — 2026-10-25
 
 ## Passed
@@ -13,7 +17,7 @@
 - The hardware emulator could not start because Windows Hypervisor Platform acceleration was unavailable. Headless software-emulation attempts, including graphics-disabled diagnostics, exited before Android boot completed. An official API 27 ARM64 image was checksum-verified locally; the installed Windows launcher explicitly rejected ARM64, and a direct ARM engine attempt also exited before boot. Windows features were not changed and no user preview was opened.
 - Native initialization, movie-detail verification signatures, Original/Sub playback, quality parity and real-device PiP/decoder behavior therefore remain unverified. Simulated lifecycle checks are not evidence of original stream playback or native process-death recovery.
 - One direct short-drama CDN sample request returned 403; the original native-adapter path has not yet been exercised. Do not infer a credit lock or successful playback from that result.
-- The current private candidate uses the newer native engine for both provider configurations; older-engine compatibility and concurrent-provider behavior need testing.
+- The latest candidate uses each provider's original native engine in separate service processes. JNI loading, package binding, service death/reconnection and idle cleanup need final runtime verification.
 - No complete catalog crawl, DRM, sidecar subtitle, casting or download parity verification has been performed.
 
 ## Required device matrix before semi-final delivery

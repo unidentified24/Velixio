@@ -1,8 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
-    <application android:label="Veyra" android:theme="@style/Theme.Veyra"
+    <application android:name=".VeyraApplication" android:label="Veyra" android:theme="@style/Theme.Veyra"
         android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@drawable/ic_veyra" android:supportsRtl="true">
+        <service android:name=".data.CurrentEngineService" android:exported="false" android:process=":stream_current" />
+        <service android:name=".data.ClassicEngineService" android:exported="false" android:process=":stream_classic" />
         <activity android:name=".PlayerActivity" android:exported="false" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>

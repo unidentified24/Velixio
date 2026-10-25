@@ -24,13 +24,13 @@ Only active, registered loopback adapter ports are accepted internally. Playback
 ## Private inputs
 Ignored asset profiles contain `baseUrl`, `appId`, `packageName`, `version`, `channel`, `signingSecret`, `responseKey`, `responseIv`, `nativeKey`, `nativePackage`, `nativeVersion`. Do not include a session token or a fixed device ID in a build profile. Never commit the values. The explicit owner authorization covers local extraction and ordinary compatibility calls, not publishing credentials or forging rewards/purchases.
 
-The current private build uses the newer ARM SDK binary. Older SDK version/config compatibility is a candidate path, not verified. The original older SDK also has a protection initializer absent from the newer Java wrapper; do not assume the two native bundles are interchangeable.
+The current implementation packages each APK's original ARM binary under a provider-specific filename in ignored `private/engines/jniLibs/<abi>/`. Each is loaded in a separate non-exported service process, so their shared ELF names and JNI class names cannot overwrite one another. The original ELF SONAMEs are preserved. Minimal original JNI declarations include the older protection-library interface. Idle app/PiP lifecycle cleanup unbinds services and terminates only their dedicated native processes. Runtime compatibility remains unverified; the Java ABI/ELF analysis is not proof of successful native loading.
 
 ## Unresolved acceptance checks
 - Native load, package/signature binding, verify signature, HTTP/native resource playback and provider switching on ARM Android.
 - Movies, TV, anime and short dramas across both providers; actual Original/Sub variants and rendition/audio/caption equivalence.
 - Expiry, session refresh, lifecycle restoration and native service cleanup.
-- Sidecar subtitle URLs, DRM and any formats beyond currently supported Media3/native behavior.
+- Runtime equivalence of embedded/HTTPS sidecar captions, DRM and formats beyond currently supported Media3/native behavior. HTTP-only sidecar captions are not upgraded or fetched through an invented proxy route.
 - No server credit denial may be hidden. The client has no credit gates; backend enforcement has not been disabled or proven absent for all content.
 
 A direct bounded request to one returned short-drama HTTP media URL returned 403. The cause is unverified; this was not treated as evidence of a credit lock or worked around. The original native adapter path remains the required playback test.

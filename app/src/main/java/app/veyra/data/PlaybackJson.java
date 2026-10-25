@@ -21,10 +21,15 @@ public final class PlaybackJson {
                 Iterator<String> keys = values.keys();
                 while (keys.hasNext()) { String key = keys.next(); headers.put(key, values.getString(key)); }
             }
+            List<SubtitleTrack> subtitles=new ArrayList<>();JSONArray captions=s.optJSONArray("subtitles");
+            if(captions!=null) {
+                if(captions.length()>20)throw new IllegalArgumentException("Too many caption tracks");
+                for(int n=0;n<captions.length();n++){JSONObject caption=captions.getJSONObject(n);subtitles.add(new SubtitleTrack(caption.getString("id"),caption.getString("label"),caption.getString("url"),caption.getString("mimeType"),caption.optString("language")));}
+            }
             if (s.optBoolean("localProxy")) {
                 if (!internal || !LegacyBackend.isActiveProxy(s.getString("url"))) throw new IllegalArgumentException("Inactive local streaming adapter");
-                sources.add(StreamSource.localProxy(s.getString("id"),s.getString("label"),s.getString("url"),s.getString("mimeType")));
-            } else sources.add(new StreamSource(s.getString("id"), s.getString("label"), s.getString("url"), s.getString("mimeType"), headers));
+                sources.add(StreamSource.localProxy(s.getString("id"),s.getString("label"),s.getString("url"),s.getString("mimeType"),subtitles));
+            } else sources.add(new StreamSource(s.getString("id"), s.getString("label"), s.getString("url"), s.getString("mimeType"), headers,subtitles));
         }
         return new PlaybackRequest(root.getString("contentId"), root.getString("title"), sources);
     }

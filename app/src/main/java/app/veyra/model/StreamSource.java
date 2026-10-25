@@ -5,13 +5,20 @@ import java.util.*;
 public final class StreamSource {
     public final String id, label, url, mimeType;
     public final Map<String,String> headers;
+    public final List<SubtitleTrack> subtitles;
     public StreamSource(String id, String label, String url, String mimeType, Map<String,String> headers) {
-        this(id,label,url,mimeType,headers,false);
+        this(id,label,url,mimeType,headers,Collections.emptyList(),false);
+    }
+    public StreamSource(String id,String label,String url,String mimeType,Map<String,String> headers,List<SubtitleTrack> subtitles) {
+        this(id,label,url,mimeType,headers,subtitles,false);
+    }
+    public static StreamSource localProxy(String id,String label,String url,String mimeType,List<SubtitleTrack> subtitles) {
+        return new StreamSource(id,label,url,mimeType,Collections.emptyMap(),subtitles,true);
     }
     public static StreamSource localProxy(String id,String label,String url,String mimeType) {
-        return new StreamSource(id,label,url,mimeType,Collections.emptyMap(),true);
+        return new StreamSource(id,label,url,mimeType,Collections.emptyMap(),Collections.emptyList(),true);
     }
-    private StreamSource(String id,String label,String url,String mimeType,Map<String,String> headers,boolean local) {
+    private StreamSource(String id,String label,String url,String mimeType,Map<String,String> headers,List<SubtitleTrack> subtitles,boolean local) {
         this.id = required(id); this.label = required(label); this.url = required(url);
         URI uri = URI.create(url);
         if (!("https".equalsIgnoreCase(uri.getScheme()) || (local && "http".equals(uri.getScheme()) && "127.0.0.1".equals(uri.getHost()) && uri.getPort()>0 && ("/resource.m3u8".equals(uri.getPath()) || "/resource.mp4".equals(uri.getPath())))) || uri.getHost() == null
@@ -33,6 +40,9 @@ public final class StreamSource {
             copy.put(key, value);
         }
         this.headers = Collections.unmodifiableMap(copy);
+        if(subtitles==null || subtitles.size()>20)throw new IllegalArgumentException("Too many caption tracks");
+        Set<String> subtitleIds=new HashSet<>();for(SubtitleTrack subtitle:subtitles)if(subtitle==null || !subtitleIds.add(subtitle.id))throw new IllegalArgumentException("Invalid caption tracks");
+        this.subtitles=Collections.unmodifiableList(new ArrayList<>(subtitles));
     }
     public static String required(String value) {
         if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException("Missing value.");

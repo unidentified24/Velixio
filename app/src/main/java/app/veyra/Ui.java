@@ -18,6 +18,13 @@ final class Ui {
         GradientDrawable bg=new GradientDrawable(); bg.setColor(Color.rgb(187,171,255)); bg.setCornerRadius(dp(a,16));
         b.setBackground(bg); b.setMinHeight(dp(a,52)); b.setPadding(dp(a,20),dp(a,10),dp(a,20),dp(a,10)); return b;
     }
+    static LinearLayout card(Activity a) {
+        LinearLayout card=column(a);GradientDrawable background=new GradientDrawable();background.setColor(Color.rgb(25,24,36));background.setCornerRadius(dp(a,18));
+        card.setBackground(background);card.setClipToOutline(true);int p=dp(a,12);card.setPadding(p,p,p,p);return card;
+    }
+    static Button chip(Activity a,String title) {
+        Button chip=button(a,title);chip.setTextSize(13);chip.setMinHeight(dp(a,44));chip.setPadding(dp(a,14),dp(a,8),dp(a,14),dp(a,8));return chip;
+    }
     static void insets(Activity a,View view,int padding) {
         int p=dp(a,padding);
         view.setOnApplyWindowInsetsListener((v,insets)->{
