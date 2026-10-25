@@ -22,6 +22,8 @@ java -cp build/contract-tests ContractTest
 ```
 The local suite currently passes 26 host contract checks, 14 backend/episode unit tests and 6 simulated Android lifecycle tests. Lifecycle coverage includes PiP controller hiding, pause/stop, saved position/speed/paused state and source refresh while visible or stopped. These checks do not decode original media or exercise the native engine.
 
+GitHub also runs `:app:connectedDebugAndroidTest` on an Android emulator using a public Media3 test clip. This is an internal player check; the fixture is not part of the library or a replacement content provider.
+
 On Windows use `gradlew.bat`. Android Studio can open this folder. Dependencies remain pinned to the current development baseline (AGP 8.7.3 / Media3 1.8.1); release compatibility/dependency upgrades are still pending.
 
 ## Private runtime inputs

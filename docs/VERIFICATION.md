@@ -22,4 +22,7 @@ Use ARM Android with a working decoder and both private profiles. Check a movie,
 The owner requires no preview or user testing request before semi-final acceptance. This integration candidate has not reached that checkpoint.
 
 ## Repository checks
-The earlier GitHub Actions runs failed before compilation because setup-android requested the removed SDK package `tools`. The workflow now requests `platform-tools` explicitly. Local assemble, lint and all 46 checks pass; GitHub execution of this revision is recorded separately. Lint currently reports zero errors and 15 warnings (English UI strings and newer dependency versions).
+The earlier GitHub Actions runs failed before compilation because setup-android requested the removed SDK package `tools`. The workflow now requests `platform-tools` explicitly. Local assemble, lint and all 46 checks pass. GitHub Actions run 40218698812 also passed for commit b0276f67e1804a6e276075d85590ed1403115ef0 after this repair. Lint currently reports zero errors and 15 warnings (English UI strings and newer dependency versions).
+
+## Android emulator playback tests
+`PlayerDeviceTest` uses the public Media3 Big Buck Bunny MP4 fixture to check actual first-frame decoding, seeking, manual PiP, Home-to-PiP, media-session pause/play, close/release and paused Home behavior on API 30. It builds locally; GitHub execution is pending. These tests never initialize either private provider and cannot establish original-server/native-SDK or Original/Sub parity. No private assets, native binaries, sample catalog or test clips are committed as product inputs.
