@@ -40,7 +40,7 @@ final class CatalogAdapter extends RecyclerView.Adapter<CatalogAdapter.Holder> {
             if(next!=null){Button b=Ui.chip(owner,"Explore more");b.setOnClickListener(v->next.run());row.addView(b);}
             return new Holder(row);
         }
-        if(type==1){FrameLayout frame=new FrameLayout(owner);frame.setLayoutParams(new RecyclerView.LayoutParams(-1,Ui.dp(owner,330)));
+        if(type==1){FrameLayout frame=new FrameLayout(owner);frame.setLayoutParams(new RecyclerView.LayoutParams(-1,Ui.dp(owner,Math.max(240,Math.min(360,owner.getResources().getConfiguration().screenHeightDp/2)))));
             Holder h=new Holder(frame);h.image=new ImageView(owner);h.image.setScaleType(ImageView.ScaleType.CENTER_CROP);frame.addView(h.image,new FrameLayout.LayoutParams(-1,-1));
             View shade=new View(owner);shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x22090d12,0x99090d12,Ui.BG}));frame.addView(shade,new FrameLayout.LayoutParams(-1,-1));
             LinearLayout copy=Ui.column(owner);copy.setBackgroundColor(Color.TRANSPARENT);copy.setPadding(Ui.dp(owner,20),0,Ui.dp(owner,20),Ui.dp(owner,16));

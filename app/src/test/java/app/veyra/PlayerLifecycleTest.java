@@ -79,4 +79,29 @@ public class PlayerLifecycleTest {
         }
     }
 
+    @Test public void videoUsesEntireViewportWithControlsShownOrHidden() throws Exception {
+        try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,playback()).setup()) {
+            PlayerActivity activity=controller.get();Field rootField=PlayerActivity.class.getDeclaredField("root");rootField.setAccessible(true);
+            android.widget.FrameLayout root=(android.widget.FrameLayout)rootField.get(activity);
+            Field viewField=PlayerActivity.class.getDeclaredField("view");viewField.setAccessible(true);PlayerView video=(PlayerView)viewField.get(activity);
+            video.setControllerAnimationEnabled(false);
+            for(boolean show:new boolean[]{true,false,true}){
+                if(show)video.showController();else video.hideController();
+                root.measure(android.view.View.MeasureSpec.makeMeasureSpec(960,android.view.View.MeasureSpec.EXACTLY),android.view.View.MeasureSpec.makeMeasureSpec(540,android.view.View.MeasureSpec.EXACTLY));root.layout(0,0,960,540);
+                assertEquals(960,video.getWidth());assertEquals(540,video.getHeight());assertEquals(0,video.getLeft());assertEquals(0,video.getTop());
+            }
+        }
+    }
+    @Test public void hidingPlaybackControlsAlsoHidesAppChrome() throws Exception {
+        try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,playback()).setup()) {
+            PlayerActivity activity=controller.get();Field vf=PlayerActivity.class.getDeclaredField("view");vf.setAccessible(true);PlayerView video=(PlayerView)vf.get(activity);video.setControllerAnimationEnabled(false);
+            Field hf=PlayerActivity.class.getDeclaredField("header");hf.setAccessible(true);Field ff=PlayerActivity.class.getDeclaredField("footer");ff.setAccessible(true);
+            Field sf=PlayerActivity.class.getDeclaredField("status");sf.setAccessible(true);((android.widget.TextView)sf.get(activity)).setText("Loading…");
+            video.showController();assertEquals(android.view.View.VISIBLE,((android.view.View)hf.get(activity)).getVisibility());
+            video.hideController();assertEquals(android.view.View.GONE,((android.view.View)hf.get(activity)).getVisibility());assertEquals(android.view.View.GONE,((android.view.View)ff.get(activity)).getVisibility());
+            video.showController();assertEquals(android.view.View.VISIBLE,((android.view.View)hf.get(activity)).getVisibility());
+            assertTrue((activity.getWindow().getDecorView().getSystemUiVisibility()&android.view.View.SYSTEM_UI_FLAG_FULLSCREEN)!=0);
+        }
+    }
+
 }

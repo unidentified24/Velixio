@@ -38,3 +38,8 @@ The owner reported that streaming works with version 0.4.2. This is physical-dev
 
 ## Version 0.5.0 interface pass
 Controls have reset theme minimum widths, smaller inset surfaces and 48dp touch targets. Title details have one primary Play action, compact selectors and batched episode rows. Filters are restored when returning from My Library. The player header is a single compact row. Final debug build, 24 automated regression tests and lint passed (zero lint errors, 20 warnings). Hash comparison confirmed all 27 streaming adapter/private-input files unchanged. The signed APK has both correct native identity bindings, the companion asset and unchanged native libraries. Visual acceptance and scrolling measurements on the phone remain pending.
+
+## Version 0.6.0 fullscreen and navigation pass
+Debug APK, Android device-test APK compilation, 26 JVM/lifecycle regression tests and lint completed successfully. Lint reports zero errors and 18 warnings (dependency versions, localization, a custom-view constructor and packaged dynamic-library loading). The two added tests cover full-window video layout with controls shown/hidden and app overlay visibility following playback controls.
+
+All 27 streaming adapter/private-input baseline hashes match. The signed APK passes both private native identity bindings, companion-asset equality and all eight native-library equality checks. These checks preserve the working integration; they do not replace physical-device streaming, visual or performance acceptance. Device instrumentation was compiled, not run. See UX-REVIEW.md for remaining phone checks.

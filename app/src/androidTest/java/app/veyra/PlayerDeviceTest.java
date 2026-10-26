@@ -69,7 +69,7 @@ public class PlayerDeviceTest {
             PlayerActivity activity=ready(scenario);
             main(()->player(activity).seekTo(10000));
             await("Seek must resume playback",()->player(activity).isPlaying() && player(activity).getCurrentPosition()>=10000,15000);
-            main(()->{Button mini=findButton(activity.getWindow().getDecorView(),"Mini player");assertNotNull(mini);assertEquals(View.VISIBLE,mini.getVisibility());mini.performClick();});
+            main(()->{((androidx.media3.ui.PlayerView)field(activity,"view")).showController();Button mini=(Button)field(activity,"miniButton");assertNotNull(mini);assertEquals(View.VISIBLE,mini.getVisibility());mini.performClick();});
             await("Manual mini player must enter Android PiP",activity::isInPictureInPictureMode,10000);
             await("Playback must continue inside PiP",()->player(activity)!=null && player(activity).isPlaying(),10000);
             AtomicReference<MediaController> controls=new AtomicReference<>();

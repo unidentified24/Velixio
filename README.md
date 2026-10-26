@@ -13,7 +13,7 @@ An Android streaming app built around a quiet, artwork-led interface and a capab
 ## Development status
 The owner confirmed playback works in version 0.4.2 on their Android phone. This confirms the reported playback issue is resolved for their test; it is not a complete content, quality or source-parity audit.
 
-Version 0.5.0 focuses on interface density: compact controls, a single primary Play action, a poster-and-title detail header, collapsible synopsis, season/version selectors and simple episode rows loaded in batches. Home artwork and player controls use less space. Smaller visible button surfaces retain comfortable touch targets. Queued poster work reuses images that finished loading while it was waiting.
+Version 0.6.0 makes playback edge-to-edge with tap-to-show controls that hide together, landscape movie playback, a compact options menu, and optional fit/fill sizing. Search has a dedicated entry screen; Library has its own filters, and returning from a title restores the originating list position. Compact controls retain 48dp touch targets. See [interface review](docs/UX-REVIEW.md).
 
 The working streaming adapters and private runtime inputs are preserved byte-for-byte. Private initialization values match Veyra's signing identity, and the companion runtime asset remains packaged locally. Native binaries and credentials remain outside Git.
 
@@ -33,4 +33,3 @@ Device tests use a public player fixture and do not establish live-service compa
 
 This repository is private. No project-wide open-source license has been granted. Dependency and private runtime terms remain applicable; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
-The 0.4.1 patch restores a native method declaration required by the integration ABI and the protection interface's mutable static map. Startup errors now include a sanitized failure category and preserve both connection attempts. A Copy details action includes Android version, supported ABIs and memory page size, without native exception text, credentials, stream URLs or private paths. The reported S03 failure still needs device verification; this is not a confirmed playback fix.

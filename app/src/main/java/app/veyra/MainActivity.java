@@ -30,12 +30,13 @@ public final class MainActivity extends Activity {
     private JSONArray channelOptions=new JSONArray();
     private String selectedProvider="current", selectedKind="movie";
     private Future<?> pending;
-    private String restoreScreen="",restoreId="",restoreType="0";
+    private String restoreScreen="",restoreId="",restoreType="0",returnScreen="catalog";
+    private android.os.Parcelable returnScroll;
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         if(saved!=null){
             channel=saved.getString("channel","");query=saved.getString("query","");page=saved.getInt("page",1);
-            restoreScreen=saved.getString("screen","");restoreId=saved.getString("detailId","");restoreType=saved.getString("audioType","0");
+            returnScreen=saved.getString("returnScreen","catalog");returnScroll=saved.getParcelable("returnScroll");restoreScreen=saved.getString("screen","");restoreId=saved.getString("detailId","");restoreType=saved.getString("audioType","0");
             selectedProvider=saved.getString("provider","current");selectedKind=saved.getString("kind","movie");
         }
         catalog=new CombinedCatalog(this);
@@ -48,11 +49,27 @@ public final class MainActivity extends Activity {
         status=Ui.text(this,"Connecting your library…",14,Ui.MUTED);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);retry=Ui.chip(this,"Try again");retry.setVisibility(View.GONE);retry.setOnClickListener(v->{if(repeatRequest!=null)repeatRequest.run();});root.addView(retry);
         FrameLayout body=new FrameLayout(this);detailScroll=new ScrollView(this);content=Ui.column(this);detailScroll.addView(content);body.addView(detailScroll);collection=new androidx.recyclerview.widget.RecyclerView(this);collection.setClipToPadding(false);collection.setItemAnimator(null);body.addView(collection,new FrameLayout.LayoutParams(-1,-1));root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout navigationBar=new LinearLayout(this);navigationBar.setPadding(0,Ui.dp(this,2),0,0);
-        for(String label:new String[]{"Home","Search","My Library"}){NavItem tab=new NavItem(this,label,navigationItems.size());navigationItems.add(tab);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{for(NavItem item:navigationItems)item.setActive(item==tab);if(label.equals("Home")){search.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;loadCatalog();}else if(label.equals("Search")){search.setVisibility(View.VISIBLE);search.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(search,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}else favorites();});}
+        for(String label:new String[]{"Home","Search","My Library"}){NavItem tab=new NavItem(this,label,navigationItems.size());navigationItems.add(tab);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{returnScroll=null;for(NavItem item:navigationItems)item.setActive(item==tab);if(label.equals("Home"))goHome();else if(label.equals("Search"))openSearch();else favorites();});}
         root.addView(navigationBar);setContentView(root);Ui.insets(this,root,16);
         if(saved==null){List<JSONObject> cached=catalog.cachedHome();if(!cached.isEmpty()){renderTitles(cached);status.setText("Refreshing your library…");}}
         loadChannels();
     }
+    private void selectNavigation(int index){for(int i=0;i<navigationItems.size();i++)navigationItems.get(i).setActive(i==index);}
+    private void hideKeyboard(){((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();}
+    private void goHome(){hideKeyboard();search.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;returnScroll=null;selectNavigation(0);loadCatalog();}
+    private void openSearch(){
+        generation++;if(pending!=null)pending.cancel(true);screen="search";currentDetail=null;retry.setVisibility(View.GONE);status.setVisibility(View.GONE);selectNavigation(1);
+        ((View)tabs.getParent()).setVisibility(View.GONE);search.setVisibility(View.VISIBLE);showContent();content.removeAllViews();
+        content.addView(Ui.text(this,"Find your next watch",26,Ui.INK));content.addView(Ui.text(this,"Search films, series and shorts",14,Ui.MUTED));
+        search.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(search,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+    }
+    private void libraryTabs(){
+        selectNavigation(2);hideKeyboard();search.setVisibility(View.GONE);((View)tabs.getParent()).setVisibility(View.VISIBLE);tabs.removeAllViews();
+        Button saved=Ui.chip(this,"My list");saved.setSelected(screen.equals("favorites"));saved.setOnClickListener(v->favorites());tabs.addView(saved);
+        Button watched=Ui.chip(this,"Continue watching");watched.setSelected(screen.equals("history"));watched.setOnClickListener(v->history());LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2);lp.leftMargin=Ui.dp(this,8);tabs.addView(watched,lp);
+    }
+    private void backFromTitle(){if(returnScreen.equals("favorites"))favorites();else if(returnScreen.equals("history"))history();else loadCatalog();}
+    private void restoreBrowsePosition(){if(returnScroll!=null&&collection.getLayoutManager()!=null){collection.getLayoutManager().onRestoreInstanceState(returnScroll);returnScroll=null;}}
     private interface Work { Object run() throws Exception; }
     private interface Done { void accept(Object result) throws Exception; }
     private void work(String message,Work task,Done done) {
@@ -75,7 +92,7 @@ public final class MainActivity extends Activity {
         status.setText(message);retry.setVisibility(View.VISIBLE);
         if(message.contains("(S")){
             long pageSize=0;try{pageSize=android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);}catch(Exception ignored){}
-            String report=message+"\n\nVeyra 0.5.0 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
+            String report=message+"\n\nVeyra 0.6.0 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
             new AlertDialog.Builder(this).setTitle("Playback couldn't start").setMessage(report).setPositiveButton("Close",null).setNeutralButton("Copy details",(dialog,which)->{
                 android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Veyra playback diagnostics",report));
@@ -91,6 +108,7 @@ public final class MainActivity extends Activity {
             if(restored.equals("detail") && !restoreId.isEmpty())loadDetail(restoreId,restoreType,selectedProvider,selectedKind);
             else if(restored.equals("favorites"))favorites();
             else if(restored.equals("history"))history();
+            else if(restored.equals("search")&&query.isEmpty())openSearch();
             else loadCatalog();
         });
     }
@@ -101,7 +119,7 @@ public final class MainActivity extends Activity {
     }
     private void loadCatalog() {
         try{renderBrowseTabs();}catch(JSONException ignored){}
-        ((View)tabs.getParent()).setVisibility(View.VISIBLE);screen="catalog";currentDetail=null;String wantedQuery=query,wantedChannel=channel;int wantedPage=page;
+        ((View)tabs.getParent()).setVisibility(query.isEmpty()?View.VISIBLE:View.GONE);screen=query.isEmpty()?"catalog":"search";search.setVisibility(query.isEmpty()?View.GONE:View.VISIBLE);selectNavigation(query.isEmpty()?0:1);currentDetail=null;String wantedQuery=query,wantedChannel=channel;int wantedPage=page;
         if(wantedChannel.isEmpty()){loadChannels();return;}
         work("Loading stories…",()->catalog.titles(wantedChannel,wantedQuery,wantedPage),value->{
             posters.clearPending();content.removeAllViews();
@@ -114,10 +132,10 @@ public final class MainActivity extends Activity {
     }
     private void renderTitles(List<JSONObject> titles) {
         detailScroll.setVisibility(View.GONE);collection.setVisibility(View.VISIBLE);
-        boolean browsing=screen.equals("catalog");
+        boolean browsing=screen.equals("catalog")||screen.equals("search");
         if(browsing && (channel.isEmpty()||channel.equals("discover")) && query.isEmpty() && page==1 && !titles.isEmpty()){
             collection.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
-            collection.setAdapter(new HomeAdapter(this,posters,titles,item->openEdition(item,item.optString("id"))));return;
+            collection.setAdapter(new HomeAdapter(this,posters,titles,item->openEdition(item,item.optString("id"))));restoreBrowsePosition();return;
         }
         CatalogAdapter adapter=new CatalogAdapter(this,posters,titles,browsing&&query.isEmpty()&&page==1,
             item->openEdition(item,item.optString("id")),browsing&&page>1?()->{page--;loadCatalog();}:null,
@@ -125,11 +143,12 @@ public final class MainActivity extends Activity {
         int columns=getResources().getConfiguration().screenWidthDp>=600?5:3;
         androidx.recyclerview.widget.GridLayoutManager manager=new androidx.recyclerview.widget.GridLayoutManager(this,columns);
         manager.setSpanSizeLookup(new androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup(){public int getSpanSize(int position){return adapter.fullWidth(position)?columns:1;}});
-        collection.setLayoutManager(manager);collection.setAdapter(adapter);collection.scrollToPosition(0);
+        collection.setLayoutManager(manager);collection.setAdapter(adapter);if(returnScroll!=null)restoreBrowsePosition();else collection.scrollToPosition(0);
         if(titles.isEmpty())status.setText(screen.equals("favorites")?"Save a title to start your collection.":"No titles found. Try another search.");
     }
     private void showContent(){collection.setVisibility(View.GONE);detailScroll.setVisibility(View.VISIBLE);detailScroll.scrollTo(0,0);}
     private void openEdition(JSONObject item,String id) {
+        returnScreen=screen;returnScroll=collection.getVisibility()==View.VISIBLE&&collection.getLayoutManager()!=null?collection.getLayoutManager().onSaveInstanceState():null;
         String kind=item.optString("_kind","movie");
         JSONArray choices=item.optJSONArray("_editions");
         work("Opening title…",()->{
@@ -154,7 +173,7 @@ public final class MainActivity extends Activity {
     private void showDetail(JSONObject detail) throws Exception {
         showContent();currentDetail=detail;final String provider=selectedProvider,kind=selectedKind;screen="detail";
         content.removeAllViews();status.setVisibility(View.GONE);search.setVisibility(View.GONE);((View)tabs.getParent()).setVisibility(View.GONE);
-        Button back=Ui.quiet(this,"‹  Back");back.setOnClickListener(v->loadCatalog());content.addView(back,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));
+        Button back=Ui.quiet(this,"‹  Back");back.setOnClickListener(v->backFromTitle());content.addView(back,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));
         LinearLayout summary=new LinearLayout(this);summary.setGravity(Gravity.CENTER_VERTICAL);
         ImageView art=new ImageView(this);art.setScaleType(ImageView.ScaleType.CENTER_CROP);art.setContentDescription(null);
         android.graphics.drawable.GradientDrawable frame=new android.graphics.drawable.GradientDrawable();frame.setColor(0xff18212b);frame.setCornerRadius(Ui.dp(this,8));art.setBackground(frame);art.setClipToOutline(true);
@@ -218,12 +237,12 @@ public final class MainActivity extends Activity {
         status.setVisibility(View.VISIBLE);((View)tabs.getParent()).setVisibility(View.VISIBLE);
         retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="favorites";posters.clearPending();content.removeAllViews();status.setText("My Library");
         List<JSONObject> saved=new ArrayList<>();for(Object value:getSharedPreferences("favorites",MODE_PRIVATE).getAll().values())try{saved.add(new JSONObject((String)value));}catch(Exception ignored){}
-        renderTitles(saved);tabs.removeAllViews();Button savedTab=Ui.chip(this,"Saved titles");savedTab.setOnClickListener(v->favorites());tabs.addView(savedTab);Button progress=Ui.chip(this,"Continue watching");progress.setOnClickListener(v->history());tabs.addView(progress);
+        libraryTabs();renderTitles(saved);
     }
     private void history() {
         status.setVisibility(View.VISIBLE);((View)tabs.getParent()).setVisibility(View.VISIBLE);
         showContent();
-        retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="history";posters.clearPending();content.removeAllViews();status.setText("Continue watching");
+        retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="history";posters.clearPending();content.removeAllViews();status.setText("Continue watching");libraryTabs();
         List<JSONObject> records=WatchHistory.list(this);
         if(records.isEmpty()){content.addView(Ui.text(this,"Your unfinished movies and episodes will appear here.",20,Ui.INK));return;}
         for(JSONObject record:records) {
@@ -267,9 +286,9 @@ public final class MainActivity extends Activity {
         if(request!=10 || result!=RESULT_OK || data==null || data.getData()==null)return;
         work("Opening playback file…",()->{try(InputStream in=getContentResolver().openInputStream(data.getData())){if(in==null)throw new IOException();String json=CatalogBackend.read(in,65536);PlaybackJson.parse(json);return json;}},value->{status.setText("Ready");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)value));});
     }
-    @Override public void onBackPressed() {if(!screen.equals("catalog")){loadCatalog();}else super.onBackPressed();}
+    @Override public void onBackPressed() {if(screen.equals("detail"))backFromTitle();else if(!screen.equals("catalog"))goHome();else super.onBackPressed();}
     @Override protected void onSaveInstanceState(Bundle state) {state.putString("channel",channel);state.putString("query",query);state.putInt("page",page);
-        state.putString("screen",screen);state.putString("provider",selectedProvider);state.putString("kind",selectedKind);
+        state.putString("returnScreen",returnScreen);state.putParcelable("returnScroll",returnScroll);state.putString("screen",screen);state.putString("provider",selectedProvider);state.putString("kind",selectedKind);
         if(currentDetail!=null){state.putString("detailId",currentDetail.optString("id"));state.putString("audioType",currentDetail.optString("audio_type","0"));}
         super.onSaveInstanceState(state);}
     @Override protected void onDestroy() {generation++;if(pending!=null)pending.cancel(true);posters.close();catalog.close();io.shutdownNow();super.onDestroy();}
