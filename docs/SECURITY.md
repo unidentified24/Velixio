@@ -1,6 +1,6 @@
-# Security review: integration candidate
+# Security
 
-Implemented in new Java code:
+Application controls:
 - Default system certificate and hostname validation; no trust-all TLS or user-CA trust override.
 - INTERNET is the only requested permission. Player activity is not exported; PiP uses the Android API rather than overlay permission.
 - HTTP is limited to the active local native adapter. Imports cannot supply local-proxy entries; external media requires HTTPS through the Java player transport.
@@ -13,13 +13,11 @@ Implemented in new Java code:
 
 Material limits:
 - The existing API's shared signing key and CBC envelope can be extracted from a distributed client. Keeping them out of Git does not make embedded secrets unextractable.
-- The owner-supplied native library is opaque and ARM-only. Its network destinations, TLS behavior, logs, background activity and shutdown behavior have not been audited or verified in the new app. Java network policy does not constrain native socket code.
-- Each provider now loads its own SDK; the renamed-library/JNI loading path remains untested. Device-native crashes cannot be excluded by JVM tests.
+- The native streaming component is opaque and ARM-only. Its network destinations, TLS behavior, logs, background activity and shutdown behavior have not been audited or verified in the app. Java network policy does not constrain native socket code.
+- Each connection loads its own SDK. JVM tests cannot exclude device-native crashes.
 - Dependency versions/target SDK remain a development baseline. This is not a penetration test, full vulnerability scan, license clearance or production security certification.
 - Existing server authorization and content availability remain authoritative. No authentication or credit-denial bypass is implemented.
 
 Before release: complete ARM-device playback/lifecycle tests, audit or isolate the native component, check current dependency advisories, verify package identity support, and generate distribution notices.
 
-Current implementation changes await the final verification pass requested by the owner.
-
-Version 0.4 stages only installed native libraries in app-private code cache, marks them read-only and loads their absolute paths. Lint flags the dynamic load for review. No remotely fetched executable is accepted. Catalog preview storage excludes streaming URLs and authentication tokens.
+The app stages only installed native libraries in app-private code cache, marks them read-only and loads their absolute paths. Lint flags the dynamic load for review. No remotely fetched executable is accepted. Catalog preview storage excludes streaming URLs and authentication tokens.

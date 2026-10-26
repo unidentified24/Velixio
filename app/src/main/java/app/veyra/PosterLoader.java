@@ -8,14 +8,15 @@ import java.io.*;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.*;
 
-/** Small bounded HTTPS-only poster loader; no cookies, tracking or disk cache. */
+/** Bounded HTTPS-only artwork loading with a process-wide memory cache; no disk cache. */
 final class PosterLoader {
-    private final ThreadPoolExecutor workers=(ThreadPoolExecutor)Executors.newFixedThreadPool(2);
-    private final LruCache<String,Bitmap> cache=new LruCache<String,Bitmap>(8*1024*1024){
+    private final ThreadPoolExecutor workers=new ThreadPoolExecutor(2,2,0L,TimeUnit.MILLISECONDS,new LinkedBlockingQueue<Runnable>(96),new ThreadPoolExecutor.DiscardOldestPolicy());
+    private static final LruCache<String,Bitmap> cache=new LruCache<String,Bitmap>(16*1024*1024){
         protected int sizeOf(String key,Bitmap value){return value.getAllocationByteCount();}
     };
     private volatile boolean closed;
     void load(Activity activity,ImageView target,String url) {
+        if(url.equals(target.getTag())&&target.getDrawable()!=null)return;
         target.setTag(url);target.setImageDrawable(null);
         if(url.isEmpty() || closed)return;
         Bitmap cached=cache.get(url);if(cached!=null){target.setImageBitmap(cached);return;}
@@ -42,5 +43,5 @@ final class PosterLoader {
         Activity activity=owner.get();if(activity!=null)activity.runOnUiThread(()->{Activity live=owner.get();ImageView view=image.get();if(!closed&&live!=null&&!live.isDestroyed()&&view!=null&&url.equals(view.getTag()))view.setImageBitmap(bitmap);});
     }
     void clearPending(){workers.getQueue().clear();}
-    void close(){closed=true;workers.shutdownNow();cache.evictAll();}
+    void close(){closed=true;workers.shutdownNow();}
 }

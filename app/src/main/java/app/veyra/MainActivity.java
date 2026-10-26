@@ -32,6 +32,12 @@ public final class MainActivity extends Activity {
     private JSONArray channelOptions=new JSONArray();
     private String selectedProvider="current", selectedKind="movie";
     private Future<?> pending;
+    private final LinkedHashMap<String,List<JSONObject>> browseCache=new LinkedHashMap<>();
+    private final Map<String,Long> browseTimes=new HashMap<>();
+    private final Map<String,String> browseWarnings=new HashMap<>();
+    private String browseKey(){return channel+"|"+page+"|"+query;}
+    private void cacheBrowse(String key,List<JSONObject> titles,String warning){if(!browseCache.containsKey(key)&&browseCache.size()>=8){String first=browseCache.keySet().iterator().next();browseCache.remove(first);browseTimes.remove(first);browseWarnings.remove(first);}browseCache.put(key,new ArrayList<>(titles));browseTimes.put(key,android.os.SystemClock.elapsedRealtime());browseWarnings.put(key,warning);}
+
     private String restoreScreen="",restoreId="",restoreType="0",returnScreen="catalog";
     private android.os.Parcelable returnScroll;
     @Override public void onCreate(Bundle saved) {
@@ -95,7 +101,7 @@ public final class MainActivity extends Activity {
         status.setText(message);retry.setVisibility(View.VISIBLE);
         if(message.contains("(S")){
             long pageSize=0;try{pageSize=android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);}catch(Exception ignored){}
-            String report=message+"\n\nZuno 0.8.0 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
+            String report=message+"\n\nZuno 0.9.0 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
             new AlertDialog.Builder(this).setTitle("Playback couldn't start").setMessage(report).setPositiveButton("Close",null).setNeutralButton("Copy details",(dialog,which)->{
                 android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zuno playback diagnostics",report));
@@ -124,9 +130,11 @@ public final class MainActivity extends Activity {
         try{renderBrowseTabs();}catch(JSONException ignored){}
         ((View)tabs.getParent()).setVisibility(query.isEmpty()?View.VISIBLE:View.GONE);screen=query.isEmpty()?"catalog":"search";search.setVisibility(query.isEmpty()?View.GONE:View.VISIBLE);selectNavigation(query.isEmpty()?0:1);currentDetail=null;String wantedQuery=query,wantedChannel=channel;int wantedPage=page;
         if(wantedChannel.isEmpty()){loadChannels();return;}
+        String key=browseKey();List<JSONObject> cached=browseCache.get(key);
+        if(cached!=null&&android.os.SystemClock.elapsedRealtime()-browseTimes.get(key)<120000){generation++;if(pending!=null)pending.cancel(true);retry.setVisibility(View.GONE);content.removeAllViews();renderTitles(cached);String warning=browseWarnings.get(key);status.setText(warning.isEmpty()?(query.isEmpty()?"":"Results for “"+query+"”"):warning);status.setVisibility(status.length()==0?View.GONE:View.VISIBLE);return;}
         work("Loading stories…",()->catalog.titles(wantedChannel,wantedQuery,wantedPage),value->{
             posters.clearPending();content.removeAllViews();
-            @SuppressWarnings("unchecked") List<JSONObject> titles=(List<JSONObject>)value;
+            @SuppressWarnings("unchecked") List<JSONObject> titles=(List<JSONObject>)value;cacheBrowse(key,titles,catalog.warning);
             status.setText(catalog.warning.isEmpty()?(wantedQuery.isEmpty()?"Find your next story":"Results for “"+wantedQuery+"”"):catalog.warning);
             if(titles.isEmpty())content.addView(Ui.text(this,"No titles found.",22,Ui.INK));
             renderTitles(titles);if(!titles.isEmpty()&&catalog.warning.isEmpty()&&wantedQuery.isEmpty())status.setVisibility(View.GONE);
@@ -271,6 +279,7 @@ public final class MainActivity extends Activity {
             LinkedHashMap<String,JSONObject> all=new LinkedHashMap<>();for(JSONObject item:first)all.put(LibraryStore.key(item),item);boolean partial=false;
             for(int next=2;next<=3;next++){if(Thread.currentThread().isInterrupted())return;try{for(JSONObject item:catalog.titles("discover","",next))all.put(LibraryStore.key(item),item);if(!catalog.warning.isEmpty())partial=true;}catch(Exception e){partial=true;}}
             final boolean incomplete=partial;List<JSONObject> expanded=new ArrayList<>(all.values());runOnUiThread(()->{if(isDestroyed()||isFinishing()||ticket!=generation||!screen.equals("catalog"))return;
+                cacheBrowse("discover|1|",expanded,incomplete?"Some discovery rows could not refresh. Available titles are shown.":catalog.warning);
                 android.os.Parcelable position=collection.getLayoutManager()==null?null:collection.getLayoutManager().onSaveInstanceState();renderTitles(expanded);if(position!=null)collection.getLayoutManager().onRestoreInstanceState(position);
                 if(incomplete){status.setText("Some discovery rows could not refresh. Available titles are shown.");status.setVisibility(View.VISIBLE);}
             });

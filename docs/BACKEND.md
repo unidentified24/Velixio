@@ -1,6 +1,6 @@
 # Streaming connection contract
 
-`CatalogBackend` implements catalog access and stream resolution; `CombinedCatalog` builds Veyra's navigation and combines results while preserving source identities. The UI never uses raw server category names as navigation labels. Search covers every configured catalog, including titles outside the Home filters.
+`CatalogBackend` implements catalog access and stream resolution; `CombinedCatalog` builds Zuno's navigation and combines results while preserving source identities. The UI never uses raw server category names as navigation labels. Search covers every configured catalog, including titles outside the Home filters.
 
 Connections have separate in-memory sessions and installation IDs. Requests use form-encoded POST bodies, HTTPS, signed headers and the service's response envelope. The existing wire format is an interoperability requirement, not a recommended design for a new service.
 
@@ -8,8 +8,8 @@ Movie details require a verification signature from the local streaming engine b
 
 Original/Sub are server source labels, not a promise that an embedded caption track exists. Episode identities and order are retained. Quality, audio and captions depend on the selected source.
 
-## Private inputs
-Profiles are ignored JSON assets named `backend.json` and `backend-classic.json`. Their field names are `baseUrl`, `appId`, `packageName`, `version`, `channel`, `signingSecret`, `responseKey`, `responseIv`, `nativeKey`, `nativePackage`, `nativeVersion`. Values, sessions and captures must never appear in Git. The historical profile filenames are retained solely for local build compatibility.
+## Local configuration
+Profiles are ignored JSON assets named `backend.json` and `backend-classic.json`. Their field names are `baseUrl`, `appId`, `packageName`, `version`, `channel`, `signingSecret`, `responseKey`, `responseIv`, `nativeKey`, `nativePackage`, `nativeVersion`. Values, sessions and captures must never appear in Git.
 
 ARM libraries use connection-specific filenames and separate non-exported service processes. These processes share the app UID. Each owns its storage and local port; the app invalidates ports when bindings die and stops idle services. The protection library loads only for the connection that requires it.
 
@@ -19,7 +19,7 @@ Safe startup codes: S01 configuration validation; S02 profile read; S03 protecti
 Validate native startup, verification signatures, first decoded frame, source switching, episode progression, quality, captions and PiP on ARM Android. A successful catalog response or APK build does not establish playback compatibility. Server authorization remains authoritative; no reward, purchase or entitlement is forged.
 
 ## Runtime startup and catalog loading
-The native initializer receives the external storage root followed by the app-scoped external-files path. No broad storage permission is requested. Installed, packaged native libraries are staged in app-private code cache using their ABI basenames and marked read-only before loading; each connection retains its non-exported process. No network-downloaded executable code is loaded. Native compatibility remains unverified.
+The native initializer receives the external storage root followed by the app-scoped external-files path. No broad storage permission is requested. Installed, packaged native libraries are staged in app-private code cache using their ABI basenames and marked read-only before loading; each connection retains its non-exported process. No network-downloaded executable code is loaded.
 
 Catalog requests run concurrently across connections. Home metadata is restricted to title identifiers, artwork, rating, year and connection identity, with a 100-title / 512-KiB bound and seven-day display lifetime. It contains no stream URLs or session tokens. Connection failure triggers the next matching edition automatically; server source variants remain explicit.
 
@@ -29,6 +29,6 @@ The JNI class declares both `load(String,String,String,String,String,String,Stri
 Failure categories are fixed labels such as JNI_METHOD, JNI_CLASS, MISSING_FILE, MISSING_SYMBOL and LINKER_NAMESPACE. Raw exception messages are classified inside the service and discarded. Fallback retains a safe message for each attempted connection. Device diagnostics contain model, Android version, ABI list and page size, copied only on the user's action.
 
 ## Build identity requirements
-Native initialization binds to the installed package and signing certificate as well as the SDK version. Private native configuration must match the APK being distributed; copying a configuration for another application causes initialization to return -1 before media startup. The HTTP API configuration and native identity configuration are separate.
+Native initialization binds to the installed package and signing certificate as well as the SDK version. Native configuration must match the APK being distributed; a mismatched configuration can prevent media initialization. The HTTP API configuration and native identity configuration are separate.
 
 The protected runtime also requires its companion data asset in the private assets directory. Packaging only its shared libraries is incomplete. Private binary assets and native configuration values remain outside Git. Check both asset presence and signing-identity consistency on the packaged APK.

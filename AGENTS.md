@@ -1,28 +1,15 @@
-# Working on Veyra
-- Preserve catalog, media servers, stream quality and authentication; remove viewing-credit monetization. Do not silently substitute sample content or another provider.
-- Original/Sub are backend source labels until response semantics are verified; do not equate them with subtitle on/off.
-- Preserve exact signed URLs, source IDs and required headers. Never log credentials or complete signed URLs.
-- Keep the backend adapter separate from playback/UI.
-- Do not copy trust-all TLS code, global cleartext settings or unnecessary permissions in service adapters.
-- No signing keys, real playback files, private runtime binaries or credentials in Git.
-- The repository stays private until the owner explicitly requests publication.
-- Report build, contract tests and real-device playback separately. Never claim backend integration from a successful build.
-- Use JDK 17 / Gradle 8.9 for the current baseline.
-- Do not request backend source, server access, passwords or private keys.
-- Veyra must have no coin wallet, paid viewing credits, balance deduction, reward-ad prerequisite, earned viewing-time countdown or credit-based episode lock.
-- Preserve authentication/session tokens and signed playback URLs; these are not viewing credits.
-- Do not forge rewards, purchases or VIP state to obtain a server authorization. Report any server-enforced incompatibility and keep normal error handling.
-- No user-facing preview APKs, screenshots or testing requests until semi-final acceptance criteria are met, unless the owner changes this preference. Internal builds/tests continue.
+# Working on Zuno
 
-- Live init/catalog tests now succeeded for both providers; newer short-drama detail calls also succeeded. This is not proof of media playback.
-- Keep both provider editions and short-drama IDs distinct. Do not silently hide partial backend failures or merge different content just because numeric IDs match.
-- Private assets/native libraries live under ignored private/. Never upload them or real response captures. Each streaming engine is now loaded in its own non-exported service process. The owner confirmed playback works in 0.4.2; full configured-service coverage remains unverified.
-- PiP must retain playback across onPause, release onStop, preserve video aspect ratio and disable automatic entry when paused/ended/failed. No overlay permission.
-- Local-proxy playback entries are internal-only and must match the active native port; user playback-file imports must reject them.
-
-- Owner now requests completing implementation before further tests. Keep automatic test triggers manual until the final implementation checkpoint. Earlier green results do not cover the new engine/history/settings/caption/UI changes.
-
-- Native initialization configuration must match Veyra's installed package and actual APK signing certificate. Verify the packaged configuration after signing; changing signing identities requires new private native binding values. Never copy stale native identity values over the verified local profiles.
-- The protected runtime requires its private companion data asset as well as shared libraries. Verify its presence in integration APKs while excluding it from Git.
-
-- Preserve the owner-confirmed 0.4.2 streaming configuration during UI-only work. Compare adapter/runtime file hashes and packaged signing bindings before delivering UI updates.
+- Use JDK 17, Android SDK 35 and Gradle 8.9.
+- Keep catalog adapters separate from playback and interface code. Preserve exact source IDs, signed URLs, required headers, stream quality and authentication.
+- Treat Original/Sub as service-defined source labels; they do not imply caption availability.
+- Preserve distinct connection and short-form title identities. Do not merge titles solely by numeric ID or conceal partial failures.
+- Keep credentials, signing keys, runtime binaries, real response captures and playback files out of Git. Local integration inputs belong under ignored `private/`.
+- Keep system certificate and hostname validation. Do not add trust-all TLS, global cleartext access or unnecessary permissions.
+- Preserve normal server authorization. Do not forge purchases, rewards or entitlements. The app has no viewing-credit wallet or balance deduction.
+- Run relevant checks at the final implementation checkpoint. Report build, automated tests and device playback separately.
+- Preserve the working streaming configuration during interface work. Compare runtime/input hashes and verify packaged signing bindings before delivery.
+- Native initialization must match the installed package, signing certificate and SDK version. Package the required companion asset with its libraries; keep both outside Git.
+- Each streaming engine runs in a non-exported service process. Local-proxy entries must match the active port and cannot be supplied by playback-file imports.
+- Picture-in-picture retains playback across onPause, releases onStop, preserves aspect ratio and disables automatic entry when paused, ended or failed. Do not request overlay permission.
+- Backup imports must be bounded and fully validated before applying changes. Export only supported viewing metadata and preferences, never sessions or media URLs.
