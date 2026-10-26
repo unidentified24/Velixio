@@ -17,3 +17,8 @@ Safe startup codes: S01 configuration validation; S02 profile read; S03 protecti
 
 ## Acceptance
 Validate native startup, verification signatures, first decoded frame, source switching, episode progression, quality, captions and PiP on ARM Android. A successful catalog response or APK build does not establish playback compatibility. Server authorization remains authoritative; no reward, purchase or entitlement is forged.
+
+## Runtime startup and catalog loading
+The native initializer receives the external storage root followed by the app-scoped external-files path. No broad storage permission is requested. Installed, packaged native libraries are staged in app-private code cache using their ABI basenames and marked read-only before loading; each connection retains its non-exported process. No network-downloaded executable code is loaded. Native compatibility remains unverified.
+
+Catalog requests run concurrently across connections. Home metadata is restricted to title identifiers, artwork, rating, year and connection identity, with a 100-title / 512-KiB bound and seven-day display lifetime. It contains no stream URLs or session tokens. Connection failure triggers the next matching edition automatically; server source variants remain explicit.

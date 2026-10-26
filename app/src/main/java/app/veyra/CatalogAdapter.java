@@ -18,12 +18,16 @@ final class CatalogAdapter extends RecyclerView.Adapter<CatalogAdapter.Holder> {
     private final List<JSONObject> titles;
     private final Open open;
     private final boolean hero;
+    private final boolean rail;
     private final Runnable previous,next;
     CatalogAdapter(Activity owner,PosterLoader posters,List<JSONObject> titles,boolean hero,Open open,Runnable previous,Runnable next) {
-        this.owner=owner;this.posters=posters;this.titles=new ArrayList<>(titles);this.hero=hero&&!titles.isEmpty();this.open=open;this.previous=previous;this.next=next;
+        this(owner,posters,titles,hero,open,previous,next,false);
     }
-    public int getItemCount(){return titles.size()+(hero?1:0)+1;}
-    public int getItemViewType(int position){return hero&&position==0?1:position==getItemCount()-1?2:0;}
+    CatalogAdapter(Activity owner,PosterLoader posters,List<JSONObject> titles,boolean hero,Open open,Runnable previous,Runnable next,boolean rail) {
+        this.owner=owner;this.posters=posters;this.titles=new ArrayList<>(titles);this.hero=hero&&!titles.isEmpty();this.open=open;this.previous=previous;this.next=next;this.rail=rail;
+    }
+    public int getItemCount(){return titles.size()+(hero?1:0)+(rail?0:1);}
+    public int getItemViewType(int position){return hero&&position==0?1:!rail&&position==getItemCount()-1?2:0;}
     boolean fullWidth(int position){return getItemViewType(position)!=0;}
     static final class Holder extends RecyclerView.ViewHolder {
         ImageView image;TextView title,meta;Button play;
@@ -50,11 +54,11 @@ final class CatalogAdapter extends RecyclerView.Adapter<CatalogAdapter.Holder> {
         h.image=new ImageView(owner);h.image.setBackgroundColor(Color.rgb(23,31,41));h.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         GradientDrawable rounded=new GradientDrawable();rounded.setColor(Color.rgb(23,31,41));rounded.setCornerRadius(Ui.dp(owner,8));h.image.setBackground(rounded);h.image.setClipToOutline(true);
         int columns=owner.getResources().getConfiguration().screenWidthDp>=600?5:3;
-        int height=(int)((owner.getResources().getConfiguration().screenWidthDp-32f)/columns*1.5f);
+        int height=rail?190:(int)((owner.getResources().getConfiguration().screenWidthDp-32f)/columns*1.5f);
         card.addView(h.image,new LinearLayout.LayoutParams(-1,Ui.dp(owner,height)));
         h.title=Ui.text(owner,"",13,Ui.INK);h.title.setMaxLines(2);h.title.setMinLines(2);h.title.setEllipsize(android.text.TextUtils.TruncateAt.END);card.addView(h.title);
         h.meta=Ui.text(owner,"",11,Ui.MUTED);h.meta.setPadding(0,0,0,0);h.meta.setMaxLines(1);card.addView(h.meta);
-        card.setLayoutParams(new RecyclerView.LayoutParams(-1,-2));return h;
+        card.setLayoutParams(new RecyclerView.LayoutParams(rail?Ui.dp(owner,136):-1,-2));return h;
     }
     public void onBindViewHolder(Holder h,int position) {
         if(getItemViewType(position)==2)return;

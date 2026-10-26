@@ -16,3 +16,9 @@ Release checks must distinguish compilation, automated player tests and actual A
 - No Android device was connected. Live streaming, ARM engine startup and visual/performance acceptance remain pending the owner-installed APK check.
 
 These results support packaging and regression confidence, not a claim that all content streams successfully.
+
+## Version 0.4 checkpoint — October 26, 2026
+- Debug build, 20 automated JVM/lifecycle tests and lint completed successfully.
+- Lint has 22 warnings, including dependency/localization notices, custom-view notices and a dynamic-library-load warning. The dynamic load is restricted to packaged libraries copied into app-private storage, not downloaded code.
+- Physical-device reports for 0.3 were S07 and S09. The initializer's path arguments and loaded basenames have changed; successful real-media playback is not established.
+- Cold-start timing, cached-start timing and visual acceptance remain unmeasured on a phone.

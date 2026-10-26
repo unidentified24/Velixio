@@ -21,3 +21,5 @@ Material limits:
 Before release: complete ARM-device playback/lifecycle tests, audit or isolate the native component, check current dependency advisories, verify package identity support, and generate distribution notices.
 
 Current implementation changes await the final verification pass requested by the owner.
+
+Version 0.4 stages only installed native libraries in app-private code cache, marks them read-only and loads their absolute paths. Lint flags the dynamic load for review. No remotely fetched executable is accepted. Catalog preview storage excludes streaming URLs and authentication tokens.

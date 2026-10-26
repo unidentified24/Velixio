@@ -21,6 +21,7 @@ public final class MainActivity extends Activity {
     private androidx.recyclerview.widget.RecyclerView collection;
     private EditText search;
     private Button retry;
+    private final List<NavItem> navigationItems=new ArrayList<>();
     private Runnable repeatRequest;
     private String channel="", query="", screen="catalog";
     private int page=1, generation;
@@ -38,7 +39,7 @@ public final class MainActivity extends Activity {
         }
         catalog=new CombinedCatalog(this);
         root=Ui.column(this);
-        LinearLayout brand=new LinearLayout(this);TextView logo=Ui.text(this,"veyra",30,Ui.INK);brand.addView(logo,new LinearLayout.LayoutParams(0,-2,1));
+        LinearLayout brand=new LinearLayout(this);BrandView logo=new BrandView(this);brand.addView(logo,new LinearLayout.LayoutParams(Ui.dp(this,146),Ui.dp(this,52)));View brandSpace=new View(this);brand.addView(brandSpace,new LinearLayout.LayoutParams(0,1,1));
         Button menu=Ui.chip(this,"•••");menu.setContentDescription("Library options");menu.setOnClickListener(v->options());brand.addView(menu);root.addView(brand);
         search=new EditText(this);search.setSingleLine(true);search.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});search.setHint("Search movies, series and short dramas");search.setTextColor(Ui.INK);search.setHintTextColor(Ui.MUTED);search.setText(query);search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         search.setOnEditorActionListener((v,action,event)->{if(action==EditorInfo.IME_ACTION_SEARCH){query=search.getText().toString().trim();page=1;((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();loadCatalog();return true;}return false;});root.addView(search);search.setVisibility(View.GONE);
@@ -46,8 +47,10 @@ public final class MainActivity extends Activity {
         status=Ui.text(this,"Connecting your library…",14,Ui.MUTED);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);retry=Ui.chip(this,"Try again");retry.setVisibility(View.GONE);retry.setOnClickListener(v->{if(repeatRequest!=null)repeatRequest.run();});root.addView(retry);
         FrameLayout body=new FrameLayout(this);detailScroll=new ScrollView(this);content=Ui.column(this);detailScroll.addView(content);body.addView(detailScroll);collection=new androidx.recyclerview.widget.RecyclerView(this);collection.setClipToPadding(false);collection.setItemAnimator(null);body.addView(collection,new FrameLayout.LayoutParams(-1,-1));root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout navigationBar=new LinearLayout(this);navigationBar.setPadding(0,Ui.dp(this,10),0,0);
-        for(String label:new String[]{"Home","Search","My Library"}){Button tab=Ui.chip(this,label);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{if(label.equals("Home")){search.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;loadChannels();}else if(label.equals("Search")){search.setVisibility(View.VISIBLE);search.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(search,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}else favorites();});}
-        root.addView(navigationBar);setContentView(root);Ui.insets(this,root,16);loadChannels();
+        for(String label:new String[]{"Home","Search","My Library"}){NavItem tab=new NavItem(this,label,navigationItems.size());navigationItems.add(tab);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{for(NavItem item:navigationItems)item.setActive(item==tab);if(label.equals("Home")){search.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;loadCatalog();}else if(label.equals("Search")){search.setVisibility(View.VISIBLE);search.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(search,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}else favorites();});}
+        root.addView(navigationBar);setContentView(root);Ui.insets(this,root,16);
+        if(saved==null){List<JSONObject> cached=catalog.cachedHome();if(!cached.isEmpty()){renderTitles(cached);status.setText("Refreshing your library…");}}
+        loadChannels();
     }
     private interface Work { Object run() throws Exception; }
     private interface Done { void accept(Object result) throws Exception; }
@@ -95,6 +98,10 @@ public final class MainActivity extends Activity {
     private void renderTitles(List<JSONObject> titles) {
         detailScroll.setVisibility(View.GONE);collection.setVisibility(View.VISIBLE);
         boolean browsing=screen.equals("catalog");
+        if(browsing && (channel.isEmpty()||channel.equals("discover")) && query.isEmpty() && page==1 && !titles.isEmpty()){
+            collection.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
+            collection.setAdapter(new HomeAdapter(this,posters,titles,item->openEdition(item,item.optString("id"))));return;
+        }
         CatalogAdapter adapter=new CatalogAdapter(this,posters,titles,browsing&&query.isEmpty()&&page==1,
             item->openEdition(item,item.optString("id")),browsing&&page>1?()->{page--;loadCatalog();}:null,
             browsing&&!titles.isEmpty()?()->{page++;loadCatalog();}:null);
@@ -107,11 +114,22 @@ public final class MainActivity extends Activity {
     private void showContent(){collection.setVisibility(View.GONE);detailScroll.setVisibility(View.VISIBLE);detailScroll.scrollTo(0,0);}
     private void openEdition(JSONObject item,String id) {
         String kind=item.optString("_kind","movie");
-        JSONArray editions=item.optJSONArray("_editions");
-        if(editions==null || editions.length()<2){loadDetail(id,"0",item.optString("_provider","current"),kind);return;}
-        String[] labels=new String[editions.length()];for(int i=0;i<labels.length;i++)labels[i]="Source "+(i+1);
-        new AlertDialog.Builder(this).setTitle("Playback source").setItems(labels,(d,i)->{try{JSONObject edition=editions.getJSONObject(i);loadDetail(edition.optString("id"),"0",edition.getString("provider"),kind);}catch(JSONException ignored){}}).show();
+        JSONArray choices=item.optJSONArray("_editions");
+        work("Opening title…",()->{
+            Exception failure=null;
+            int count=choices==null?1:Math.max(1,choices.length());
+            for(int i=0;i<count;i++){
+                if(Thread.currentThread().isInterrupted())throw new InterruptedException();
+                JSONObject choice=choices==null?null:choices.optJSONObject(i);
+                String provider=choice==null?item.optString("_provider","current"):choice.optString("provider","current");
+                String titleId=choice==null?id:choice.optString("id",id);
+                try{return new Object[]{CatalogBackend.get(this,provider).detail(titleId,"0",kind),provider};}
+                catch(Exception e){failure=e;}
+            }
+            throw failure==null?new IOException("The server did not supply this title."):failure;
+        },value->{Object[] result=(Object[])value;selectedProvider=(String)result[1];selectedKind=kind;showDetail((JSONObject)result[0]);});
     }
+
     private void loadDetail(String id,String audioType,String provider,String kind) {
         work("Loading title and playback sources…",()->CatalogBackend.get(this,provider).detail(id,audioType,kind),value->{selectedProvider=provider;selectedKind=kind;showDetail((JSONObject)value);});
     }
@@ -206,5 +224,5 @@ public final class MainActivity extends Activity {
         state.putString("screen",screen);state.putString("provider",selectedProvider);state.putString("kind",selectedKind);
         if(currentDetail!=null){state.putString("detailId",currentDetail.optString("id"));state.putString("audioType",currentDetail.optString("audio_type","0"));}
         super.onSaveInstanceState(state);}
-    @Override protected void onDestroy() {generation++;if(pending!=null)pending.cancel(true);posters.close();io.shutdownNow();super.onDestroy();}
+    @Override protected void onDestroy() {generation++;if(pending!=null)pending.cancel(true);posters.close();catalog.close();io.shutdownNow();super.onDestroy();}
 }

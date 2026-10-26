@@ -11,9 +11,13 @@ An Android streaming app built around a quiet, artwork-led interface and a capab
 - No wallet, viewing-credit countdown, reward-ad requirement or balance deduction.
 
 ## Development status
-Version 0.3 is in device testing. The APK builds, all 46 automated checks pass, and Android lint reports no errors. Catalog access has been exercised, but live streaming is **not yet verified**. A device report identified a failure while starting the native streaming service. The startup sequence has been corrected to load the protection library only for the connection that requires it; safe stage codes distinguish remaining errors. This change still requires ARM-device verification.
+Version 0.4 is in device testing. It builds successfully; 20 backend, episode and Android lifecycle tests pass, and lint reports no errors. Live playback is **not yet verified**.
 
-The interface now recycles poster views instead of creating every card at once. Playback menus are compact and browsing categories belong to Veyra. Artwork and titles come from the configured catalog; no substitute media library is bundled.
+Device testing reported S07 (native initialization returned an invalid port) and S09 (service connection failure or process exit). The current build aligns the SDK storage arguments and library basenames with the service integration contract. A remaining S07 includes the numeric native result. These changes require device confirmation.
+
+Home now presents highly rated titles, recent releases and discovery rows from movie and series metadata. This is metadata-based ranking, not a personalized recommendation claim. Catalog connections load concurrently; a bounded app-private metadata preview appears on repeat launches while fresh results load. Title taps resolve a connection automatically and try the next matching edition after a failure. Original/Sub choices remain available separately.
+
+The header uses a custom vector wordmark and bottom navigation has distinct icons and selection states. No substitute media library is bundled.
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.9:
