@@ -24,6 +24,7 @@ final class PosterLoader {
             HttpURLConnection c=null;
             try {
                 ImageView wanted=image.get();if(wanted==null || !url.equals(wanted.getTag()))return;
+                Bitmap completed=cache.get(url);if(completed!=null){deliver(owner,image,url,completed);return;}
                 URI uri=URI.create(url);if(!"https".equals(uri.getScheme()) || uri.getHost()==null || uri.getRawUserInfo()!=null)return;
                 c=(HttpURLConnection)uri.toURL().openConnection();c.setInstanceFollowRedirects(false);c.setConnectTimeout(8000);c.setReadTimeout(8000);c.setUseCaches(false);
                 if(c.getResponseCode()!=200)return;
@@ -32,10 +33,13 @@ final class PosterLoader {
                 if(options.outWidth<1 || options.outHeight<1 || options.outWidth>16000 || options.outHeight>16000)return;
                 options.inSampleSize=1;while(options.outWidth/options.inSampleSize>400 || options.outHeight/options.inSampleSize>600)options.inSampleSize*=2;
                 options.inJustDecodeBounds=false;Bitmap bitmap=BitmapFactory.decodeByteArray(bytes,0,bytes.length,options);if(bitmap==null || closed)return;
-                cache.put(url,bitmap);Activity a=owner.get();if(a!=null)a.runOnUiThread(()->{Activity live=owner.get();ImageView v=image.get();if(!closed && live!=null && !live.isDestroyed() && v!=null && url.equals(v.getTag()))v.setImageBitmap(bitmap);});
+                cache.put(url,bitmap);deliver(owner,image,url,bitmap);
             }catch(Exception ignored){ /* Title and metadata remain usable when artwork is unavailable. */ }
             finally{if(c!=null)c.disconnect();}
         });
+    }
+    private void deliver(WeakReference<Activity> owner,WeakReference<ImageView> image,String url,Bitmap bitmap){
+        Activity activity=owner.get();if(activity!=null)activity.runOnUiThread(()->{Activity live=owner.get();ImageView view=image.get();if(!closed&&live!=null&&!live.isDestroyed()&&view!=null&&url.equals(view.getTag()))view.setImageBitmap(bitmap);});
     }
     void clearPending(){workers.getQueue().clear();}
     void close(){closed=true;workers.shutdownNow();cache.evictAll();}

@@ -40,25 +40,25 @@ final class CatalogAdapter extends RecyclerView.Adapter<CatalogAdapter.Holder> {
             if(next!=null){Button b=Ui.chip(owner,"Explore more");b.setOnClickListener(v->next.run());row.addView(b);}
             return new Holder(row);
         }
-        if(type==1){FrameLayout frame=new FrameLayout(owner);frame.setLayoutParams(new RecyclerView.LayoutParams(-1,Ui.dp(owner,390)));
+        if(type==1){FrameLayout frame=new FrameLayout(owner);frame.setLayoutParams(new RecyclerView.LayoutParams(-1,Ui.dp(owner,330)));
             Holder h=new Holder(frame);h.image=new ImageView(owner);h.image.setScaleType(ImageView.ScaleType.CENTER_CROP);frame.addView(h.image,new FrameLayout.LayoutParams(-1,-1));
             View shade=new View(owner);shade.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0x22090d12,0x99090d12,Ui.BG}));frame.addView(shade,new FrameLayout.LayoutParams(-1,-1));
-            LinearLayout copy=Ui.column(owner);copy.setBackgroundColor(Color.TRANSPARENT);copy.setPadding(Ui.dp(owner,20),0,Ui.dp(owner,20),Ui.dp(owner,26));
-            TextView eyebrow=Ui.text(owner,"IN THE SPOTLIGHT",11,Color.rgb(92,224,192));eyebrow.setLetterSpacing(.2f);copy.addView(eyebrow);
-            h.title=Ui.text(owner,"",31,Ui.INK);h.title.setTypeface(null,Typeface.BOLD);h.title.setMaxLines(2);copy.addView(h.title);
+            LinearLayout copy=Ui.column(owner);copy.setBackgroundColor(Color.TRANSPARENT);copy.setPadding(Ui.dp(owner,20),0,Ui.dp(owner,20),Ui.dp(owner,16));
+            TextView eyebrow=Ui.text(owner,"FEATURED",11,Color.rgb(92,224,192));eyebrow.setLetterSpacing(.2f);copy.addView(eyebrow);
+            h.title=Ui.text(owner,"",27,Ui.INK);h.title.setTypeface(null,Typeface.BOLD);h.title.setMaxLines(2);copy.addView(h.title);
             h.meta=Ui.text(owner,"",13,Ui.MUTED);copy.addView(h.meta);
-            h.play=Ui.button(owner,"View title");copy.addView(h.play,new LinearLayout.LayoutParams(-1,Ui.dp(owner,48)));
+            h.play=Ui.primary(owner,"View title  ›");copy.addView(h.play,new LinearLayout.LayoutParams(-2,Ui.dp(owner,48)));
             FrameLayout.LayoutParams cp=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM);frame.addView(copy,cp);return h;
         }
         LinearLayout card=Ui.column(owner);card.setPadding(gap,gap,gap,Ui.dp(owner,16));Holder h=new Holder(card);
         h.image=new ImageView(owner);h.image.setBackgroundColor(Color.rgb(23,31,41));h.image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         GradientDrawable rounded=new GradientDrawable();rounded.setColor(Color.rgb(23,31,41));rounded.setCornerRadius(Ui.dp(owner,8));h.image.setBackground(rounded);h.image.setClipToOutline(true);
         int columns=owner.getResources().getConfiguration().screenWidthDp>=600?5:3;
-        int height=rail?190:(int)((owner.getResources().getConfiguration().screenWidthDp-32f)/columns*1.5f);
+        int height=rail?171:(int)((owner.getResources().getConfiguration().screenWidthDp-32f)/columns*1.5f);
         card.addView(h.image,new LinearLayout.LayoutParams(-1,Ui.dp(owner,height)));
         h.title=Ui.text(owner,"",13,Ui.INK);h.title.setMaxLines(2);h.title.setMinLines(2);h.title.setEllipsize(android.text.TextUtils.TruncateAt.END);card.addView(h.title);
         h.meta=Ui.text(owner,"",11,Ui.MUTED);h.meta.setPadding(0,0,0,0);h.meta.setMaxLines(1);card.addView(h.meta);
-        card.setLayoutParams(new RecyclerView.LayoutParams(rail?Ui.dp(owner,136):-1,-2));return h;
+        card.setLayoutParams(new RecyclerView.LayoutParams(rail?Ui.dp(owner,124):-1,-2));return h;
     }
     public void onBindViewHolder(Holder h,int position) {
         if(getItemViewType(position)==2)return;

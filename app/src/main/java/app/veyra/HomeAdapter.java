@@ -36,9 +36,9 @@ final class HomeAdapter extends RecyclerView.Adapter<HomeAdapter.Holder> {
     public int getItemViewType(int position){return position==0?1:0;}
     public Holder onCreateViewHolder(ViewGroup parent,int type){
         if(type==1){CatalogAdapter.Holder hero=spotlight.onCreateViewHolder(parent,1);Holder h=new Holder(hero.itemView);h.hero=hero;return h;}
-        LinearLayout section=Ui.column(owner);Holder h=new Holder(section);h.heading=Ui.text(owner,"",21,Ui.INK);h.heading.setTypeface(null,android.graphics.Typeface.BOLD);section.addView(h.heading);
+        LinearLayout section=Ui.column(owner);Holder h=new Holder(section);h.heading=Ui.text(owner,"",18,Ui.INK);h.heading.setTypeface(null,android.graphics.Typeface.BOLD);section.addView(h.heading);
         h.rail=new RecyclerView(owner);h.rail.setLayoutManager(new LinearLayoutManager(owner,LinearLayoutManager.HORIZONTAL,false));h.rail.setRecycledViewPool(pool);h.rail.setItemAnimator(null);h.rail.setNestedScrollingEnabled(false);h.rail.setClipToPadding(false);
-        section.addView(h.rail,new LinearLayout.LayoutParams(-1,Ui.dp(owner,264)));section.setLayoutParams(new RecyclerView.LayoutParams(-1,-2));return h;
+        section.addView(h.rail,new LinearLayout.LayoutParams(-1,Ui.dp(owner,224)+Math.round(32*owner.getResources().getDisplayMetrics().scaledDensity)));section.setLayoutParams(new RecyclerView.LayoutParams(-1,-2));return h;
     }
     public void onBindViewHolder(Holder h,int position){
         if(position==0){spotlight.onBindViewHolder(h.hero,0);return;}

@@ -32,3 +32,9 @@ Native inspection identified an installed-app identity check before media initia
 A companion protection data asset was missing and is now included only in private build assets. Verification on the final APK confirmed both native identity bindings against its actual signing certificate and package, exact companion-asset bytes, and unchanged native libraries for both ABIs.
 
 Debug build, 24 automated tests and lint passed (no lint errors; 22 warnings). Physical-device decoding, authorization and full content parity remain unverified. The companion asset's role in resolving JNI startup remains to be confirmed at runtime.
+
+## Owner playback confirmation
+The owner reported that streaming works with version 0.4.2. This is physical-device user evidence, not an automated full-library or both-source parity result.
+
+## Version 0.5.0 interface pass
+Controls have reset theme minimum widths, smaller inset surfaces and 48dp touch targets. Title details have one primary Play action, compact selectors and batched episode rows. Filters are restored when returning from My Library. The player header is a single compact row. Final debug build, 24 automated regression tests and lint passed (zero lint errors, 20 warnings). Hash comparison confirmed all 27 streaming adapter/private-input files unchanged. The signed APK has both correct native identity bindings, the companion asset and unchanged native libraries. Visual acceptance and scrolling measurements on the phone remain pending.

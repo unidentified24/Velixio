@@ -60,8 +60,9 @@ public final class PlayerActivity extends Activity {
     }
     private void createPlayerUi() {
         root=Ui.column(this); header=Ui.column(this); footer=Ui.column(this);
-        Button back=Ui.chip(this,"‹  Library"); back.setOnClickListener(v->finish()); header.addView(back);
-        titleView=Ui.text(this,request.title,18,Ui.INK); header.addView(titleView); root.addView(header);
+        LinearLayout titleBar=new LinearLayout(this);titleBar.setGravity(Gravity.CENTER_VERTICAL);
+        Button back=Ui.quiet(this,"‹");back.setContentDescription("Back to library");back.setOnClickListener(v->finish());titleBar.addView(back,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
+        titleView=Ui.text(this,request.title,15,Ui.INK);titleView.setMaxLines(1);titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);titleBar.addView(titleView,new LinearLayout.LayoutParams(0,-2,1));header.addView(titleBar);root.addView(header);
         view=new PlayerView(this); view.setShowSubtitleButton(true); view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
         view.setContentDescription("Video player"); root.addView(view,new LinearLayout.LayoutParams(-1,0,1));
         view.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updatePip());
@@ -106,7 +107,7 @@ public final class PlayerActivity extends Activity {
         }catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed() && !isFinishing()){resolving=false;message.setText("Playback could not be restored. Return to the title to reconnect.");}});}});
     }
     private Button action(LinearLayout row,String label,Runnable run) {
-        Button b=Ui.chip(this,label); b.setOnClickListener(v->run.run());
+        Button b=Ui.quiet(this,label); b.setOnClickListener(v->run.run());
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2); lp.setMargins(0,0,Ui.dp(this,8),0); row.addView(b,lp); return b;
     }
     private String selectedType() {

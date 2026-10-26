@@ -27,6 +27,7 @@ public final class MainActivity extends Activity {
     private int page=1, generation;
     private JSONObject currentDetail;
     private CombinedCatalog catalog;
+    private JSONArray channelOptions=new JSONArray();
     private String selectedProvider="current", selectedKind="movie";
     private Future<?> pending;
     private String restoreScreen="",restoreId="",restoreType="0";
@@ -39,14 +40,14 @@ public final class MainActivity extends Activity {
         }
         catalog=new CombinedCatalog(this);
         root=Ui.column(this);
-        LinearLayout brand=new LinearLayout(this);BrandView logo=new BrandView(this);brand.addView(logo,new LinearLayout.LayoutParams(Ui.dp(this,146),Ui.dp(this,52)));View brandSpace=new View(this);brand.addView(brandSpace,new LinearLayout.LayoutParams(0,1,1));
+        LinearLayout brand=new LinearLayout(this);BrandView logo=new BrandView(this);brand.addView(logo,new LinearLayout.LayoutParams(Ui.dp(this,120),Ui.dp(this,48)));View brandSpace=new View(this);brand.addView(brandSpace,new LinearLayout.LayoutParams(0,1,1));
         Button menu=Ui.chip(this,"•••");menu.setContentDescription("Library options");menu.setOnClickListener(v->options());brand.addView(menu);root.addView(brand);
         search=new EditText(this);search.setSingleLine(true);search.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});search.setHint("Search movies, series and short dramas");search.setTextColor(Ui.INK);search.setHintTextColor(Ui.MUTED);search.setText(query);search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         search.setOnEditorActionListener((v,action,event)->{if(action==EditorInfo.IME_ACTION_SEARCH){query=search.getText().toString().trim();page=1;((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();loadCatalog();return true;}return false;});root.addView(search);search.setVisibility(View.GONE);
         HorizontalScrollView navigation=new HorizontalScrollView(this);tabs=new LinearLayout(this);navigation.addView(tabs);navigation.setHorizontalScrollBarEnabled(false);root.addView(navigation);
         status=Ui.text(this,"Connecting your library…",14,Ui.MUTED);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);retry=Ui.chip(this,"Try again");retry.setVisibility(View.GONE);retry.setOnClickListener(v->{if(repeatRequest!=null)repeatRequest.run();});root.addView(retry);
         FrameLayout body=new FrameLayout(this);detailScroll=new ScrollView(this);content=Ui.column(this);detailScroll.addView(content);body.addView(detailScroll);collection=new androidx.recyclerview.widget.RecyclerView(this);collection.setClipToPadding(false);collection.setItemAnimator(null);body.addView(collection,new FrameLayout.LayoutParams(-1,-1));root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
-        LinearLayout navigationBar=new LinearLayout(this);navigationBar.setPadding(0,Ui.dp(this,10),0,0);
+        LinearLayout navigationBar=new LinearLayout(this);navigationBar.setPadding(0,Ui.dp(this,2),0,0);
         for(String label:new String[]{"Home","Search","My Library"}){NavItem tab=new NavItem(this,label,navigationItems.size());navigationItems.add(tab);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{for(NavItem item:navigationItems)item.setActive(item==tab);if(label.equals("Home")){search.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;loadCatalog();}else if(label.equals("Search")){search.setVisibility(View.VISIBLE);search.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(search,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}else favorites();});}
         root.addView(navigationBar);setContentView(root);Ui.insets(this,root,16);
         if(saved==null){List<JSONObject> cached=catalog.cachedHome();if(!cached.isEmpty()){renderTitles(cached);status.setText("Refreshing your library…");}}
@@ -56,7 +57,7 @@ public final class MainActivity extends Activity {
     private interface Done { void accept(Object result) throws Exception; }
     private void work(String message,Work task,Done done) {
         repeatRequest=()->work(message,task,done);retry.setVisibility(View.GONE);
-        int ticket=++generation;if(pending!=null)pending.cancel(true);status.setText(message);
+        int ticket=++generation;if(pending!=null)pending.cancel(true);status.setVisibility(View.VISIBLE);status.setText(message);
         pending=io.submit(()->{try {Object result=task.run();runOnUiThread(()->{
             if(isDestroyed() || isFinishing() || ticket!=generation)return;
             try{done.accept(result);}catch(Exception e){showError("The server returned an unsupported response.");}
@@ -74,7 +75,7 @@ public final class MainActivity extends Activity {
         status.setText(message);retry.setVisibility(View.VISIBLE);
         if(message.contains("(S")){
             long pageSize=0;try{pageSize=android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);}catch(Exception ignored){}
-            String report=message+"\n\nVeyra 0.4.2 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
+            String report=message+"\n\nVeyra 0.5.0 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
             new AlertDialog.Builder(this).setTitle("Playback couldn't start").setMessage(report).setPositiveButton("Close",null).setNeutralButton("Copy details",(dialog,which)->{
                 android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Veyra playback diagnostics",report));
@@ -85,8 +86,7 @@ public final class MainActivity extends Activity {
     private void loadChannels() {
         work("Connecting your library…",()->catalog.channels(),value->{
             JSONArray channels=(JSONArray)value;tabs.removeAllViews();boolean valid=false;for(int i=0;i<channels.length();i++)if(channels.getJSONObject(i).optString("id").equals(channel))valid=true;if(!valid)channel="";
-            for(int i=0;i<channels.length();i++) {JSONObject c=channels.getJSONObject(i);String id=c.getString("id");if(channel.isEmpty())channel=id;
-                Button b=Ui.chip(this,c.optString("channel_name","Browse"));b.setOnClickListener(v->{channel=id;query="";search.setText("");page=1;loadCatalog();});LinearLayout.LayoutParams chipSpace=new LinearLayout.LayoutParams(-2,-2);chipSpace.setMargins(0,0,Ui.dp(this,8),0);tabs.addView(b,chipSpace);}
+            channelOptions=channels;renderBrowseTabs();
             String restored=restoreScreen;restoreScreen="";
             if(restored.equals("detail") && !restoreId.isEmpty())loadDetail(restoreId,restoreType,selectedProvider,selectedKind);
             else if(restored.equals("favorites"))favorites();
@@ -94,15 +94,21 @@ public final class MainActivity extends Activity {
             else loadCatalog();
         });
     }
+    private void renderBrowseTabs() throws JSONException {
+        JSONArray channels=channelOptions;tabs.removeAllViews();
+            for(int i=0;i<channels.length();i++) {JSONObject c=channels.getJSONObject(i);String id=c.getString("id");if(channel.isEmpty())channel=id;
+                Button b=Ui.chip(this,c.optString("channel_name","Browse"));b.setSelected(id.equals(channel));b.setOnClickListener(v->{for(int n=0;n<tabs.getChildCount();n++)tabs.getChildAt(n).setSelected(tabs.getChildAt(n)==b);channel=id;query="";search.setText("");page=1;loadCatalog();});LinearLayout.LayoutParams chipSpace=new LinearLayout.LayoutParams(-2,-2);chipSpace.setMargins(0,0,Ui.dp(this,8),0);tabs.addView(b,chipSpace);}
+    }
     private void loadCatalog() {
-        screen="catalog";currentDetail=null;String wantedQuery=query,wantedChannel=channel;int wantedPage=page;
+        try{renderBrowseTabs();}catch(JSONException ignored){}
+        ((View)tabs.getParent()).setVisibility(View.VISIBLE);screen="catalog";currentDetail=null;String wantedQuery=query,wantedChannel=channel;int wantedPage=page;
         if(wantedChannel.isEmpty()){loadChannels();return;}
         work("Loading stories…",()->catalog.titles(wantedChannel,wantedQuery,wantedPage),value->{
             posters.clearPending();content.removeAllViews();
             @SuppressWarnings("unchecked") List<JSONObject> titles=(List<JSONObject>)value;
             status.setText(catalog.warning.isEmpty()?(wantedQuery.isEmpty()?"Find your next story":"Results for “"+wantedQuery+"”"):catalog.warning);
             if(titles.isEmpty())content.addView(Ui.text(this,"No titles found.",22,Ui.INK));
-            renderTitles(titles);
+            renderTitles(titles);if(!titles.isEmpty()&&catalog.warning.isEmpty()&&wantedQuery.isEmpty())status.setVisibility(View.GONE);
 
         });
     }
@@ -146,33 +152,61 @@ public final class MainActivity extends Activity {
         work("Loading title and playback sources…",()->CatalogBackend.get(this,provider).detail(id,audioType,kind),value->{selectedProvider=provider;selectedKind=kind;showDetail((JSONObject)value);});
     }
     private void showDetail(JSONObject detail) throws Exception {
-        showContent();currentDetail=detail;final String detailProvider=selectedProvider,detailKind=selectedKind;screen="detail";content.removeAllViews();status.setText("Choose an episode");
-        Button back=Ui.button(this,"‹ Back to library");back.setOnClickListener(v->loadCatalog());content.addView(back);
-        ImageView artwork=new ImageView(this);artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);artwork.setContentDescription(null);content.addView(artwork,new LinearLayout.LayoutParams(-1,Ui.dp(this,220)));posters.load(this,artwork,detail.optString("vod_pic"));
-        content.addView(Ui.text(this,detail.optString("vod_name","Video"),30,Ui.INK));
-        String description=detail.optString("vod_blurb");content.addView(Ui.text(this,android.text.Html.fromHtml(description,android.text.Html.FROM_HTML_MODE_LEGACY).toString(),16,Ui.MUTED));
-        Button save=Ui.button(this,favoriteLabel(detail,detailProvider,detailKind));save.setOnClickListener(v->{toggleFavorite(detail,detailProvider,detailKind);save.setText(favoriteLabel(detail,detailProvider,detailKind));});content.addView(save);
+        showContent();currentDetail=detail;final String provider=selectedProvider,kind=selectedKind;screen="detail";
+        content.removeAllViews();status.setVisibility(View.GONE);search.setVisibility(View.GONE);((View)tabs.getParent()).setVisibility(View.GONE);
+        Button back=Ui.quiet(this,"‹  Back");back.setOnClickListener(v->loadCatalog());content.addView(back,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));
+        LinearLayout summary=new LinearLayout(this);summary.setGravity(Gravity.CENTER_VERTICAL);
+        ImageView art=new ImageView(this);art.setScaleType(ImageView.ScaleType.CENTER_CROP);art.setContentDescription(null);
+        android.graphics.drawable.GradientDrawable frame=new android.graphics.drawable.GradientDrawable();frame.setColor(0xff18212b);frame.setCornerRadius(Ui.dp(this,8));art.setBackground(frame);art.setClipToOutline(true);
+        summary.addView(art,new LinearLayout.LayoutParams(Ui.dp(this,108),Ui.dp(this,162)));posters.load(this,art,detail.optString("vod_pic"));
+        LinearLayout titleBlock=Ui.column(this);titleBlock.setPadding(Ui.dp(this,16),0,0,0);
+        TextView title=Ui.text(this,detail.optString("vod_name","Video"),25,Ui.INK);title.setTypeface(null,android.graphics.Typeface.BOLD);title.setMaxLines(4);title.setEllipsize(android.text.TextUtils.TruncateAt.END);titleBlock.addView(title);
+        List<String> metadata=new ArrayList<>();for(String key:new String[]{"vod_year","vod_area","vod_douban_score"}){String value=detail.optString(key);if(!value.isEmpty()&&!value.equals("0"))metadata.add(value);}
+        titleBlock.addView(Ui.text(this,android.text.TextUtils.join(" · ",metadata),12,Ui.MUTED));summary.addView(titleBlock,new LinearLayout.LayoutParams(0,-2,1));content.addView(summary);
         JSONArray audio=detail.optJSONArray("audio_type_option");String selected=detail.optString("audio_type","0"),label="Default";
-        LinearLayout variants=new LinearLayout(this);
-        if(audio!=null)for(int i=0;i<audio.length();i++){JSONObject a=audio.getJSONObject(i);String type=a.optString("type"),name=a.optString("type_name",type);if(type.equals(selected))label=name;
-            Button b=Ui.button(this,name+(type.equals(selected)?" ✓":""));b.setOnClickListener(v->loadDetail(detail.optString("id"),type,detailProvider,detailKind));variants.addView(b);}
-        HorizontalScrollView sourceChoices=new HorizontalScrollView(this);sourceChoices.setHorizontalScrollBarEnabled(false);sourceChoices.addView(variants);content.addView(sourceChoices);final String sourceLabel=label;
+        if(audio!=null)for(int i=0;i<audio.length();i++){JSONObject choice=audio.getJSONObject(i);if(choice.optString("type").equals(selected))label=choice.optString("type_name","Default");}
+        final String sourceLabel=label;JSONArray episodes=detail.optJSONArray("vod_collection");
+        LinearLayout actions=new LinearLayout(this);actions.setPadding(0,Ui.dp(this,12),0,Ui.dp(this,4));
+        if(episodes!=null&&episodes.length()>0){JSONObject first=episodes.getJSONObject(0);Button play=Ui.primary(this,"▶  Play");play.setOnClickListener(v->playEpisode(detail,first,sourceLabel,provider,kind));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,Ui.dp(this,48),1);lp.setMargins(0,0,Ui.dp(this,8),0);actions.addView(play,lp);}
+        Button save=Ui.chip(this,favoriteLabel(detail,provider,kind));save.setOnClickListener(v->{toggleFavorite(detail,provider,kind);save.setText(favoriteLabel(detail,provider,kind));});actions.addView(save,new LinearLayout.LayoutParams(0,Ui.dp(this,48),1));content.addView(actions);
+        String description=android.text.Html.fromHtml(detail.optString("vod_blurb"),android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim();
+        if(!description.isEmpty()){
+            TextView synopsis=Ui.text(this,description,14,Ui.MUTED);synopsis.setLineSpacing(Ui.dp(this,3),1);synopsis.setMaxLines(4);synopsis.setEllipsize(android.text.TextUtils.TruncateAt.END);content.addView(synopsis);
+            Button more=Ui.quiet(this,"Read more");more.setOnClickListener(v->{boolean expanded=more.getText().equals("Read less");synopsis.setMaxLines(expanded?4:Integer.MAX_VALUE);more.setText(expanded?"Read more":"Read less");});content.addView(more,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));
+        }
+        LinearLayout selectors=new LinearLayout(this);
+        if(audio!=null&&audio.length()>1){Button variant=Ui.chip(this,sourceLabel+"  ▾");variant.setContentDescription("Playback version: "+sourceLabel);
+            String[] names=new String[audio.length()],types=new String[audio.length()];int active=0;
+            for(int i=0;i<audio.length();i++){JSONObject choice=audio.getJSONObject(i);names[i]=choice.optString("type_name");types[i]=choice.optString("type");if(types[i].equals(selected))active=i;}
+            final int checked=active;variant.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Playback version").setSingleChoiceItems(names,checked,(dialog,index)->{dialog.dismiss();loadDetail(detail.optString("id"),types[index],provider,kind);}).setNegativeButton("Cancel",null).show());selectors.addView(variant);}
         JSONArray seasons=detail.optJSONArray("series_info");
-        if(seasons!=null && seasons.length()>1){content.addView(Ui.text(this,"Seasons",18,Ui.INK));for(int i=0;i<seasons.length();i++){JSONObject season=seasons.getJSONObject(i);String sid=season.optString("vod_id");if(!sid.isEmpty()){Button b=Ui.button(this,season.optString("series","Season "+(i+1)));b.setOnClickListener(v->loadDetail(sid,"0",detailProvider,detailKind));content.addView(b);}}}
-        JSONArray episodes=detail.optJSONArray("vod_collection");
-        if(episodes==null || episodes.length()==0){content.addView(Ui.text(this,"The server has not supplied playable episodes for this title.",17,Ui.MUTED));return;}
-        for(int i=0;i<episodes.length();i++) {JSONObject episode=episodes.getJSONObject(i);Button play=Ui.button(this,"▶  "+episode.optString("title","Episode "+(i+1)));
-            play.setOnClickListener(v->work("Opening episode…",()->CatalogBackend.get(this,detailProvider).playbackJson(detail,episode,sourceLabel),json->launchPlayer(detail,episode,(String)json,detailProvider,detailKind)));content.addView(play);}
+        if(seasons!=null&&seasons.length()>1){List<String> names=new ArrayList<>(),ids=new ArrayList<>();for(int i=0;i<seasons.length();i++){JSONObject season=seasons.getJSONObject(i);if(!season.optString("vod_id").isEmpty()){ids.add(season.optString("vod_id"));names.add(season.optString("series","Season "+(i+1)));}}
+            Button season=Ui.chip(this,"Seasons  ▾");season.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Choose season").setItems(names.toArray(new String[0]),(dialog,index)->loadDetail(ids.get(index),"0",provider,kind)).show());LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(-2,-2);gap.setMargins(Ui.dp(this,8),0,0,0);selectors.addView(season,gap);}
+        HorizontalScrollView choices=new HorizontalScrollView(this);choices.setHorizontalScrollBarEnabled(false);choices.addView(selectors);content.addView(choices);
+        if(episodes==null||episodes.length()==0){content.addView(Ui.text(this,"No playable episodes are available for this title.",14,Ui.MUTED));return;}
+        if(episodes.length()>1){content.addView(Ui.text(this,"Episodes · "+episodes.length(),18,Ui.INK));appendEpisodes(detail,episodes,0,sourceLabel,provider,kind);}
+    }
+    private void playEpisode(JSONObject detail,JSONObject episode,String label,String provider,String kind){
+        work("Opening episode…",()->CatalogBackend.get(this,provider).playbackJson(detail,episode,label),json->launchPlayer(detail,episode,(String)json,provider,kind));
+    }
+    private void appendEpisodes(JSONObject detail,JSONArray episodes,int start,String label,String provider,String kind){
+        int end=Math.min(start+20,episodes.length());
+        for(int i=start;i<end;i++){JSONObject episode=episodes.optJSONObject(i);if(episode==null)continue;
+            Button row=Ui.quiet(this,String.format(java.util.Locale.ROOT,"%02d",i+1)+"     "+episode.optString("title","Episode "+(i+1))+"    ›");
+            row.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);row.setContentDescription("Play "+episode.optString("title","Episode "+(i+1)));row.setOnClickListener(v->playEpisode(detail,episode,label,provider,kind));content.addView(row,new LinearLayout.LayoutParams(-1,Ui.dp(this,52)));
+            View divider=new View(this);divider.setBackgroundColor(0xff1c2631);content.addView(divider,new LinearLayout.LayoutParams(-1,Ui.dp(this,1)));
+        }
+        if(end<episodes.length()){Button more=Ui.quiet(this,"More episodes  ↓");more.setOnClickListener(v->{content.removeView(more);appendEpisodes(detail,episodes,end,label,provider,kind);});content.addView(more,new LinearLayout.LayoutParams(-1,Ui.dp(this,48)));}
     }
     private void launchPlayer(JSONObject detail,JSONObject episode,String json,String provider,String kind) throws Exception {
-        status.setText("Choose an episode");
+        status.setVisibility(View.GONE);
         startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",json).putExtra("audioType",detail.optString("audio_type","0"))
             .putExtra("kind",kind).putExtra("provider",provider).putExtra("vodId",detail.optString("id")).putExtra("collection",EpisodeSelection.key(episode))
             .putExtra("catalogTitle",detail.optString("vod_name","Video")).putExtra("poster",detail.optString("vod_pic"))
             .putExtra("variants",detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString()));
     }
     private String favoriteLabel(JSONObject detail,String provider,String kind) {
-        return getSharedPreferences("favorites",MODE_PRIVATE).contains(provider+":"+kind+":"+detail.optString("id"))?"✓ Saved to My Library":"+ Save to My Library";
+        return getSharedPreferences("favorites",MODE_PRIVATE).contains(provider+":"+kind+":"+detail.optString("id"))?"✓  Saved":"+  My list";
     }
     private void toggleFavorite(JSONObject detail,String provider,String kind) {
         try {String id=provider+":"+kind+":"+detail.optString("id");android.content.SharedPreferences prefs=getSharedPreferences("favorites",MODE_PRIVATE);
@@ -181,11 +215,13 @@ public final class MainActivity extends Activity {
         }catch(JSONException ignored){status.setText("Could not save this title.");}
     }
     private void favorites() {
+        status.setVisibility(View.VISIBLE);((View)tabs.getParent()).setVisibility(View.VISIBLE);
         retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="favorites";posters.clearPending();content.removeAllViews();status.setText("My Library");
         List<JSONObject> saved=new ArrayList<>();for(Object value:getSharedPreferences("favorites",MODE_PRIVATE).getAll().values())try{saved.add(new JSONObject((String)value));}catch(Exception ignored){}
         renderTitles(saved);tabs.removeAllViews();Button savedTab=Ui.chip(this,"Saved titles");savedTab.setOnClickListener(v->favorites());tabs.addView(savedTab);Button progress=Ui.chip(this,"Continue watching");progress.setOnClickListener(v->history());tabs.addView(progress);
     }
     private void history() {
+        status.setVisibility(View.VISIBLE);((View)tabs.getParent()).setVisibility(View.VISIBLE);
         showContent();
         retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="history";posters.clearPending();content.removeAllViews();status.setText("Continue watching");
         List<JSONObject> records=WatchHistory.list(this);
@@ -197,7 +233,7 @@ public final class MainActivity extends Activity {
             String collection=record.optString("collection");String episode=collection.startsWith("id:")?"Current episode":"Episode "+collection;
             card.addView(Ui.text(this,episode+" · "+(position/60000)+" min watched",14,Ui.MUTED));
             if(duration>0){ProgressBar progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(1000);progress.setProgress((int)Math.min(1000,(double)position/duration*1000));card.addView(progress);}
-            Button resume=Ui.button(this,"Resume");resume.setOnClickListener(v->resume(record));card.addView(resume);
+            Button resume=Ui.button(this,"Resume");resume.setOnClickListener(v->resume(record));card.addView(resume,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));
         }
     }
     private void resume(JSONObject record) {
@@ -212,13 +248,13 @@ public final class MainActivity extends Activity {
         android.content.SharedPreferences prefs=getSharedPreferences("settings",MODE_PRIVATE);LinearLayout panel=Ui.column(this);int padding=Ui.dp(this,20);panel.setPadding(padding,padding,padding,padding);
         Switch autoplay=new Switch(this);autoplay.setText("Play the next episode automatically");autoplay.setTextColor(Ui.INK);autoplay.setChecked(prefs.getBoolean("autoplay",false));autoplay.setOnCheckedChangeListener((v,checked)->prefs.edit().putBoolean("autoplay",checked).apply());panel.addView(autoplay);
         Switch remember=new Switch(this);remember.setText("Remember playback speed");remember.setTextColor(Ui.INK);remember.setChecked(prefs.getBoolean("rememberSpeed",true));remember.setPadding(0,Ui.dp(this,18),0,Ui.dp(this,18));remember.setOnCheckedChangeListener((v,checked)->prefs.edit().putBoolean("rememberSpeed",checked).apply());panel.addView(remember);
-        Button quality=Ui.button(this,"Default video quality");quality.setOnClickListener(v->{
+        Button quality=Ui.quiet(this,"Default video quality  ›");quality.setOnClickListener(v->{
             String[] labels={"Auto","Data saver · up to 480p","HD · up to 720p","Full HD · up to 1080p","Highest available"};int[] heights={0,480,720,1080,-1};int selected=0;
             for(int i=0;i<heights.length;i++)if(heights[i]==prefs.getInt("qualityHeight",0))selected=i;
             new AlertDialog.Builder(this).setTitle("Default video quality").setSingleChoiceItems(labels,selected,(dialog,index)->{prefs.edit().putInt("qualityHeight",heights[index]).apply();dialog.dismiss();}).setNegativeButton("Close",null).show();
         });panel.addView(quality);
         panel.addView(Ui.text(this,"Available quality and captions depend on each stream. You can change them in the player.",14,Ui.MUTED));
-        Button clear=Ui.button(this,"Clear watch history");clear.setOnClickListener(v->new AlertDialog.Builder(this).setMessage("Clear watch history and saved playback positions?").setPositiveButton("Clear",(dialog,which)->{WatchHistory.clear(this);Toast.makeText(this,"Watch history cleared",Toast.LENGTH_SHORT).show();if(screen.equals("history"))history();}).setNegativeButton("Cancel",null).show());panel.addView(clear);
+        Button clear=Ui.quiet(this,"Clear watch history");clear.setOnClickListener(v->new AlertDialog.Builder(this).setMessage("Clear watch history and saved playback positions?").setPositiveButton("Clear",(dialog,which)->{WatchHistory.clear(this);Toast.makeText(this,"Watch history cleared",Toast.LENGTH_SHORT).show();if(screen.equals("history"))history();}).setNegativeButton("Cancel",null).show());panel.addView(clear);
         new AlertDialog.Builder(this).setTitle("Playback settings").setView(panel).setPositiveButton("Done",null).show();
     }
     private void options() {

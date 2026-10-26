@@ -11,13 +11,11 @@ An Android streaming app built around a quiet, artwork-led interface and a capab
 - No wallet, viewing-credit countdown, reward-ad requirement or balance deduction.
 
 ## Development status
-Version 0.4.2 is in device testing. It builds successfully; 24 backend, episode, native-interface and Android lifecycle tests pass, and lint reports no errors. Live playback is **not yet verified**.
+The owner confirmed playback works in version 0.4.2 on their Android phone. This confirms the reported playback issue is resolved for their test; it is not a complete content, quality or source-parity audit.
 
-Device reports isolated an initialization return of -1 on one connection and protection-library startup failure on the other. Native inspection found an app-identity mismatch; the private configurations now match Veyra's own package and signing certificate. A missing companion protection asset has also been restored to private build inputs. These are verified packaging/configuration corrections, but actual video playback remains **unverified** until the updated build runs on an ARM device.
+Version 0.5.0 focuses on interface density: compact controls, a single primary Play action, a poster-and-title detail header, collapsible synopsis, season/version selectors and simple episode rows loaded in batches. Home artwork and player controls use less space. Smaller visible button surfaces retain comfortable touch targets. Queued poster work reuses images that finished loading while it was waiting.
 
-Home now presents highly rated titles, recent releases and discovery rows from movie and series metadata. This is metadata-based ranking, not a personalized recommendation claim. Catalog connections load concurrently; a bounded app-private metadata preview appears on repeat launches while fresh results load. Title taps resolve a connection automatically and try the next matching edition after a failure. Original/Sub choices remain available separately.
-
-The header uses a custom vector wordmark and bottom navigation has distinct icons and selection states. No substitute media library is bundled.
+The working streaming adapters and private runtime inputs are preserved byte-for-byte. Private initialization values match Veyra's signing identity, and the companion runtime asset remains packaged locally. Native binaries and credentials remain outside Git.
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.9:

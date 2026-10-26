@@ -16,7 +16,7 @@
 
 - Live init/catalog tests now succeeded for both providers; newer short-drama detail calls also succeeded. This is not proof of media playback.
 - Keep both provider editions and short-drama IDs distinct. Do not silently hide partial backend failures or merge different content just because numeric IDs match.
-- Private assets/native libraries live under ignored private/. Never upload them or real response captures. Each streaming engine is now loaded in its own non-exported service process. This new path and all configured-service playback remain unverified.
+- Private assets/native libraries live under ignored private/. Never upload them or real response captures. Each streaming engine is now loaded in its own non-exported service process. The owner confirmed playback works in 0.4.2; full configured-service coverage remains unverified.
 - PiP must retain playback across onPause, release onStop, preserve video aspect ratio and disable automatic entry when paused/ended/failed. No overlay permission.
 - Local-proxy playback entries are internal-only and must match the active native port; user playback-file imports must reject them.
 
@@ -24,3 +24,5 @@
 
 - Native initialization configuration must match Veyra's installed package and actual APK signing certificate. Verify the packaged configuration after signing; changing signing identities requires new private native binding values. Never copy stale native identity values over the verified local profiles.
 - The protected runtime requires its private companion data asset as well as shared libraries. Verify its presence in integration APKs while excluding it from Git.
+
+- Preserve the owner-confirmed 0.4.2 streaming configuration during UI-only work. Compare adapter/runtime file hashes and packaged signing bindings before delivering UI updates.
