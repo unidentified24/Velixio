@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
-/** Each original SDK lives in its own bound process and owns its own loopback port. */
+/** Each streaming SDK lives in its own bound process and owns its own loopback port. */
 public final class NativeEngine {
     @android.annotation.SuppressLint("StaticFieldLeak") // Application contexts only.
     private static final Map<String,NativeEngine> engines=new HashMap<>();
@@ -38,7 +38,8 @@ public final class NativeEngine {
         }
         try{return attempt.get(45,TimeUnit.SECONDS);}
         catch(InterruptedException e){Thread.currentThread().interrupt();throw new IOException("Streaming setup interrupted");}
-        catch(ExecutionException|TimeoutException e){close();throw new IOException("The original streaming component could not start. Please retry.");}
+        catch(TimeoutException e){close();throw new IOException("The streaming service timed out (S08). Please retry.");}
+        catch(ExecutionException e){close();throw new IOException(e.getCause() instanceof IOException?e.getCause().getMessage():"The streaming service stopped (S09). Please retry.");}
     }
     private void bind(Connection next) {
         synchronized(lock){if(connection!=next)return;}
@@ -59,7 +60,7 @@ public final class NativeEngine {
                 synchronized(lock) {
                     if(connection!=this)return true;
                     if(message.what==NativeEngineService.READY && message.arg1>0 && message.arg1<=65535){port=message.arg1;result.complete(port);}
-                    else fail();
+                    else fail("S0"+Math.max(1,Math.min(7,message.arg1)));
                 }
                 return true;
             }));
@@ -74,10 +75,11 @@ public final class NativeEngine {
         public void onServiceDisconnected(ComponentName name){fail();}
         public void onBindingDied(ComponentName name){fail();}
         public void onNullBinding(ComponentName name){fail();}
-        void fail(){invalidate(this);}
+        void fail(){fail("S09");}
+        void fail(String code){invalidate(this,code);}
     }
-    private void invalidate(Connection failed) {
-        synchronized(lock){if(connection!=failed)return;connection=null;port=0;pending=null;failed.result.completeExceptionally(new IOException("Streaming component unavailable"));}
+    private void invalidate(Connection failed,String code) {
+        synchronized(lock){if(connection!=failed)return;connection=null;port=0;pending=null;failed.result.completeExceptionally(new IOException("The streaming service could not start ("+code+"). Please retry."));}
         main.post(()->{if(failed.bound){try{context.unbindService(failed);}catch(IllegalArgumentException ignored){}failed.bound=false;}});
     }
     public void close() {

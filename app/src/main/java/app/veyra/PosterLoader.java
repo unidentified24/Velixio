@@ -16,12 +16,14 @@ final class PosterLoader {
     };
     private volatile boolean closed;
     void load(Activity activity,ImageView target,String url) {
-        if(url.isEmpty() || closed)return;target.setTag(url);
+        target.setTag(url);target.setImageDrawable(null);
+        if(url.isEmpty() || closed)return;
         Bitmap cached=cache.get(url);if(cached!=null){target.setImageBitmap(cached);return;}
         WeakReference<ImageView> image=new WeakReference<>(target);WeakReference<Activity> owner=new WeakReference<>(activity);
         workers.execute(()->{
             HttpURLConnection c=null;
             try {
+                ImageView wanted=image.get();if(wanted==null || !url.equals(wanted.getTag()))return;
                 URI uri=URI.create(url);if(!"https".equals(uri.getScheme()) || uri.getHost()==null || uri.getRawUserInfo()!=null)return;
                 c=(HttpURLConnection)uri.toURL().openConnection();c.setInstanceFollowRedirects(false);c.setConnectTimeout(8000);c.setReadTimeout(8000);c.setUseCaches(false);
                 if(c.getResponseCode()!=200)return;

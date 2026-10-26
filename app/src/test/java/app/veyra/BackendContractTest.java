@@ -11,7 +11,7 @@ public class BackendContractTest {
         JSONObject first=new JSONObject().put("id",23).put("vod_name","First");
         JSONObject second=new JSONObject().put("id",24).put("vod_name","Second");
         JSONArray sections=new JSONArray().put(new JSONObject().put("block_list",new JSONArray().put(new JSONObject().put("vod_info",first)).put(new JSONObject().put("jump_url","https://ads.example.invalid/")))).put(new JSONObject().put("vod_list",new JSONArray().put(second).put(first)));
-        List<JSONObject> titles=LegacyBackend.titles(sections);
+        List<JSONObject> titles=CatalogBackend.titles(sections);
         assertEquals(2,titles.size());assertEquals(23,titles.get(0).getInt("id"));assertEquals(24,titles.get(1).getInt("id"));
     }
     @Test public void combinedCatalogRetainsUniqueTitlesAndBothEditions() throws Exception {
@@ -29,13 +29,13 @@ public class BackendContractTest {
     }
     @Test public void shortDramaIdsDoNotCollideWithMovieIds() throws Exception {
         JSONObject movie=new JSONObject().put("id",23).put("vod_name","Title").put("_provider","current");
-        JSONObject shortDrama=LegacyBackend.normalizeShort(new JSONObject().put("id",23).put("title","Title").put("cover","https://example.invalid/cover.jpg"));shortDrama.put("_provider","current");
+        JSONObject shortDrama=CatalogBackend.normalizeShort(new JSONObject().put("id",23).put("title","Title").put("cover","https://example.invalid/cover.jpg"));shortDrama.put("_provider","current");
         assertEquals(2,CombinedCatalog.group(Arrays.asList(movie,shortDrama)).size());assertEquals("short",shortDrama.getString("_kind"));
     }
     @Test public void deeplyNestedInputIsBounded() throws Exception {
         JSONObject value=new JSONObject().put("id",1).put("vod_name","Too deep");
         for(int i=0;i<20;i++)value=new JSONObject().put("nested",value);
-        assertTrue(LegacyBackend.titles(value).isEmpty());
+        assertTrue(CatalogBackend.titles(value).isEmpty());
     }
     @Test public void importedPlaybackPreservesSignedUrlAndOpaqueSourceLabels() throws Exception {
         String url="https://cdn.example.invalid/a%2Fb.m3u8?x=A%2BB&x=2";

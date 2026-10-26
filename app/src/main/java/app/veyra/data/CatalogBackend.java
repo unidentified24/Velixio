@@ -14,23 +14,23 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.*;
 
-/** APK-derived protocol. Secrets and optional SDK binaries are private build inputs, never repository content. */
-public final class LegacyBackend implements StreamingBackend {
+/** Streaming service protocol. Secrets and optional SDK binaries are private build inputs, never repository content. */
+public final class CatalogBackend implements StreamingBackend {
     @android.annotation.SuppressLint("StaticFieldLeak") // Application contexts only.
-    private static final Map<String,LegacyBackend> instances=new HashMap<>();
+    private static final Map<String,CatalogBackend> instances=new HashMap<>();
     public final String provider;
     private final Context context;
     private final JSONObject config;
     private final String deviceId;
     private String token="", nativeConfig="";
     private final NativeEngine engine;
-    public static LegacyBackend get(Context context) throws Exception {return get(context,"current");}
-    public static synchronized LegacyBackend get(Context context,String provider) throws Exception {
+    public static CatalogBackend get(Context context) throws Exception {return get(context,"current");}
+    public static synchronized CatalogBackend get(Context context,String provider) throws Exception {
         if(!provider.equals("current") && !provider.equals("classic"))throw new IOException("Unknown catalog");
-        LegacyBackend value=instances.get(provider);
-        if(value==null){value=new LegacyBackend(context.getApplicationContext(),provider);instances.put(provider,value);}return value;
+        CatalogBackend value=instances.get(provider);
+        if(value==null){value=new CatalogBackend(context.getApplicationContext(),provider);instances.put(provider,value);}return value;
     }
-    private LegacyBackend(Context context,String provider) throws Exception {
+    private CatalogBackend(Context context,String provider) throws Exception {
         this.context=context;this.provider=provider;this.engine=NativeEngine.get(context,provider);
         try(InputStream in=context.getAssets().open(provider.equals("classic")?"backend-classic.json":"backend.json")) { config=new JSONObject(read(in,65536)); }
         URI base=URI.create(config.getString("baseUrl"));
@@ -99,7 +99,7 @@ public final class LegacyBackend implements StreamingBackend {
         return new JSONObject().put("schemaVersion",1).put("contentId",provider+":"+detail.optString("_kind","movie")+":"+detail.optString("id")+":"+EpisodeSelection.key(episode)).put("title",detail.optString("vod_name","Video")+" · "+episode.optString("title","Episode")).put("sources",new JSONArray().put(source)).toString();
     }
     public boolean ownsProxy(URI uri) { int port=engine.port();return port>0 && "http".equals(uri.getScheme()) && "127.0.0.1".equals(uri.getHost()) && uri.getPort()==port && ("/resource.m3u8".equals(uri.getPath()) || "/resource.mp4".equals(uri.getPath())); }
-    public static synchronized boolean isActiveProxy(String url) { try {for(LegacyBackend value:instances.values())if(value.ownsProxy(URI.create(url)))return true;return false;}catch(IllegalArgumentException e){return false;} }
+    public static synchronized boolean isActiveProxy(String url) { try {for(CatalogBackend value:instances.values())if(value.ownsProxy(URI.create(url)))return true;return false;}catch(IllegalArgumentException e){return false;} }
     private Object request(String route,Map<String,String> fields) throws Exception {
         URL url=new URL(config.getString("baseUrl").replaceAll("/+$","")+route);
         HttpURLConnection c=(HttpURLConnection)url.openConnection();c.setRequestMethod("POST");c.setDoOutput(true);c.setConnectTimeout(15000);c.setReadTimeout(20000);c.setInstanceFollowRedirects(false);c.setUseCaches(false);

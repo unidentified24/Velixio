@@ -27,7 +27,7 @@ public final class PlaybackJson {
                 for(int n=0;n<captions.length();n++){JSONObject caption=captions.getJSONObject(n);subtitles.add(new SubtitleTrack(caption.getString("id"),caption.getString("label"),caption.getString("url"),caption.getString("mimeType"),caption.optString("language")));}
             }
             if (s.optBoolean("localProxy")) {
-                if (!internal || !LegacyBackend.isActiveProxy(s.getString("url"))) throw new IllegalArgumentException("Inactive local streaming adapter");
+                if (!internal || !CatalogBackend.isActiveProxy(s.getString("url"))) throw new IllegalArgumentException("Inactive local streaming adapter");
                 sources.add(StreamSource.localProxy(s.getString("id"),s.getString("label"),s.getString("url"),s.getString("mimeType"),subtitles));
             } else sources.add(new StreamSource(s.getString("id"), s.getString("label"), s.getString("url"), s.getString("mimeType"), headers,subtitles));
         }

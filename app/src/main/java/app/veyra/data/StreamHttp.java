@@ -14,7 +14,7 @@ public final class StreamHttp {
         OkHttpClient client=new OkHttpClient.Builder().connectTimeout(15,TimeUnit.SECONDS).readTimeout(20,TimeUnit.SECONDS)
             .followSslRedirects(false).addNetworkInterceptor(chain->{
                 Request original=chain.request();HttpUrl target=original.url();Request.Builder request=original.newBuilder();
-                if(!target.isHttps() && !(target.host().equals("127.0.0.1") && target.port()==origin.port() && LegacyBackend.isActiveProxy(source.url)))
+                if(!target.isHttps() && !(target.host().equals("127.0.0.1") && target.port()==origin.port() && CatalogBackend.isActiveProxy(source.url)))
                     throw new IOException("Insecure stream transport was rejected");
                 // Signed headers belong only to the originating server, including after redirects.
                 if(!target.scheme().equals(origin.scheme()) || !target.host().equals(origin.host()) || target.port()!=origin.port())

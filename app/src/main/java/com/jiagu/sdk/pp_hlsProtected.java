@@ -1,5 +1,5 @@
 package com.jiagu.sdk;
-/** Original protection-library JNI names; the binary remains a private build input. */
+/** Protection-library JNI names; the binary remains a private build input. */
 public final class pp_hlsProtected {
     private pp_hlsProtected() {}
     public static final java.util.Map<Integer,String> a=new java.util.concurrent.ConcurrentHashMap<>();

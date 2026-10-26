@@ -12,6 +12,7 @@ public abstract class NativeEngineService extends Service {
     private HandlerThread worker;
     private Messenger receiver;
     private int port;
+    private int stage=1;
     protected abstract String provider();
     @Override public void onCreate() {
         super.onCreate();worker=new HandlerThread("streaming-engine");worker.start();
@@ -21,21 +22,24 @@ public abstract class NativeEngineService extends Service {
             try {
                 if(port==0)port=initialize(message.getData().getString("configuration",""));
                 response.what=READY;response.arg1=port;
-            }catch(Exception|LinkageError e){response.what=FAILED;}
+            }catch(Exception|LinkageError e){response.what=FAILED;response.arg1=stage; /* Never send exception text: it may contain private inputs. */ }
             try{message.replyTo.send(response);}catch(RemoteException ignored){}
             return true;
         }));
     }
     private int initialize(String configuration) throws Exception {
         if(configuration.isEmpty() || configuration.length()>524288)throw new IOException("Invalid streaming configuration");
-        String provider=provider();JSONObject profile;
-        try(InputStream in=getAssets().open(provider.equals("classic")?"backend-classic.json":"backend.json")){profile=new JSONObject(LegacyBackend.read(in,65536));}
+        stage=2;String provider=provider();JSONObject profile;
+        try(InputStream in=getAssets().open(provider.equals("classic")?"backend-classic.json":"backend.json")){profile=new JSONObject(CatalogBackend.read(in,65536));}
         // Both libraries retain their original ELF identity. Separate processes prevent symbol/state collisions.
-        System.loadLibrary("veyra_"+provider+"_guard");
+        stage=3;
+        if(provider.equals("classic"))System.loadLibrary("veyra_"+provider+"_guard");
+        stage=4;
         System.loadLibrary("veyra_"+provider+"_engine");
-        File storage=new File(getFilesDir(),"streaming/"+provider),cache=new File(getCacheDir(),"streaming/"+provider);
+        stage=5;File storage=new File(getFilesDir(),"streaming/"+provider),cache=new File(getCacheDir(),"streaming/"+provider);
         if((!storage.isDirectory() && !storage.mkdirs()) || (!cache.isDirectory() && !cache.mkdirs()))throw new IOException("Cannot prepare streaming storage");
-        int started=new com.pp.hls().load(profile.getString("nativeKey"),profile.getString("nativePackage"),profile.getString("nativeVersion"),storage.getAbsolutePath(),cache.getAbsolutePath(),configuration,"1");
+        stage=6;int started=new com.pp.hls().load(profile.getString("nativeKey"),profile.getString("nativePackage"),profile.getString("nativeVersion"),storage.getAbsolutePath(),cache.getAbsolutePath(),configuration,"1");
+        stage=7;
         if(started<1 || started>65535)throw new IOException("Streaming initialization failed");
         return started;
     }

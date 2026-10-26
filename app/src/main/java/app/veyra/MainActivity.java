@@ -14,10 +14,14 @@ import java.util.concurrent.*;
 
 public final class MainActivity extends Activity {
     private final PosterLoader posters=new PosterLoader();
-    private final ExecutorService io=Executors.newSingleThreadExecutor();
+    private final ExecutorService io=Executors.newFixedThreadPool(3);
     private LinearLayout root, content, tabs;
     private TextView status;
+    private ScrollView detailScroll;
+    private androidx.recyclerview.widget.RecyclerView collection;
     private EditText search;
+    private Button retry;
+    private Runnable repeatRequest;
     private String channel="", query="", screen="catalog";
     private int page=1, generation;
     private JSONObject currentDetail;
@@ -34,20 +38,21 @@ public final class MainActivity extends Activity {
         }
         catalog=new CombinedCatalog(this);
         root=Ui.column(this);
-        LinearLayout brand=new LinearLayout(this);TextView logo=Ui.text(this,"V E Y R A",26,Ui.INK);brand.addView(logo,new LinearLayout.LayoutParams(0,-2,1));
-        Button menu=Ui.button(this,"•••");menu.setContentDescription("Library options");menu.setOnClickListener(v->options());brand.addView(menu);root.addView(brand);
+        LinearLayout brand=new LinearLayout(this);TextView logo=Ui.text(this,"veyra",30,Ui.INK);brand.addView(logo,new LinearLayout.LayoutParams(0,-2,1));
+        Button menu=Ui.chip(this,"•••");menu.setContentDescription("Library options");menu.setOnClickListener(v->options());brand.addView(menu);root.addView(brand);
         search=new EditText(this);search.setSingleLine(true);search.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});search.setHint("Search movies, series and short dramas");search.setTextColor(Ui.INK);search.setHintTextColor(Ui.MUTED);search.setText(query);search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        search.setOnEditorActionListener((v,action,event)->{if(action==EditorInfo.IME_ACTION_SEARCH){query=search.getText().toString().trim();page=1;((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();loadCatalog();return true;}return false;});root.addView(search);
+        search.setOnEditorActionListener((v,action,event)->{if(action==EditorInfo.IME_ACTION_SEARCH){query=search.getText().toString().trim();page=1;((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();loadCatalog();return true;}return false;});root.addView(search);search.setVisibility(View.GONE);
         HorizontalScrollView navigation=new HorizontalScrollView(this);tabs=new LinearLayout(this);navigation.addView(tabs);navigation.setHorizontalScrollBarEnabled(false);root.addView(navigation);
-        status=Ui.text(this,"Connecting your library…",14,Ui.MUTED);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);
-        ScrollView scroll=new ScrollView(this);content=Ui.column(this);scroll.addView(content);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        status=Ui.text(this,"Connecting your library…",14,Ui.MUTED);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);retry=Ui.chip(this,"Try again");retry.setVisibility(View.GONE);retry.setOnClickListener(v->{if(repeatRequest!=null)repeatRequest.run();});root.addView(retry);
+        FrameLayout body=new FrameLayout(this);detailScroll=new ScrollView(this);content=Ui.column(this);detailScroll.addView(content);body.addView(detailScroll);collection=new androidx.recyclerview.widget.RecyclerView(this);collection.setClipToPadding(false);collection.setItemAnimator(null);body.addView(collection,new FrameLayout.LayoutParams(-1,-1));root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout navigationBar=new LinearLayout(this);navigationBar.setPadding(0,Ui.dp(this,10),0,0);
-        for(String label:new String[]{"Discover","Continue","My list"}){Button tab=Ui.chip(this,label);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{if(label.equals("Discover"))loadCatalog();else if(label.equals("Continue"))history();else favorites();});}
+        for(String label:new String[]{"Home","Search","My Library"}){Button tab=Ui.chip(this,label);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{if(label.equals("Home")){search.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;loadChannels();}else if(label.equals("Search")){search.setVisibility(View.VISIBLE);search.requestFocus();((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(search,android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);}else favorites();});}
         root.addView(navigationBar);setContentView(root);Ui.insets(this,root,16);loadChannels();
     }
     private interface Work { Object run() throws Exception; }
     private interface Done { void accept(Object result) throws Exception; }
     private void work(String message,Work task,Done done) {
+        repeatRequest=()->work(message,task,done);retry.setVisibility(View.GONE);
         int ticket=++generation;if(pending!=null)pending.cancel(true);status.setText(message);
         pending=io.submit(()->{try {Object result=task.run();runOnUiThread(()->{
             if(isDestroyed() || isFinishing() || ticket!=generation)return;
@@ -59,15 +64,15 @@ public final class MainActivity extends Activity {
         if(e instanceof java.net.UnknownHostException)return "Cannot reach the catalog. Check your connection and retry.";
         if(e instanceof java.net.SocketTimeoutException)return "The server took too long to respond. Please retry.";
         if(e instanceof javax.net.ssl.SSLException)return "A secure connection could not be verified.";
-        if(e instanceof IOException && e.getMessage()!=null && (e.getMessage().startsWith("The original") || e.getMessage().startsWith("The server") || e.getMessage().startsWith("Session expired")))return e.getMessage();
+        if(e instanceof IOException && e.getMessage()!=null && (e.getMessage().startsWith("The streaming") || e.getMessage().startsWith("The server") || e.getMessage().startsWith("Session expired")))return e.getMessage();
         return "This request could not complete. Please retry.";
     }
-    private void showError(String message) {status.setText(message);}
+    private void showError(String message) {status.setText(message);retry.setVisibility(View.VISIBLE);}
     private void loadChannels() {
         work("Connecting your library…",()->catalog.channels(),value->{
-            JSONArray channels=(JSONArray)value;tabs.removeAllViews();
+            JSONArray channels=(JSONArray)value;tabs.removeAllViews();boolean valid=false;for(int i=0;i<channels.length();i++)if(channels.getJSONObject(i).optString("id").equals(channel))valid=true;if(!valid)channel="";
             for(int i=0;i<channels.length();i++) {JSONObject c=channels.getJSONObject(i);String id=c.getString("id");if(channel.isEmpty())channel=id;
-                Button b=Ui.chip(this,c.optString("channel_name","Browse"));b.setOnClickListener(v->{channel=id;query="";search.setText("");page=1;loadCatalog();});tabs.addView(b);}
+                Button b=Ui.chip(this,c.optString("channel_name","Browse"));b.setOnClickListener(v->{channel=id;query="";search.setText("");page=1;loadCatalog();});LinearLayout.LayoutParams chipSpace=new LinearLayout.LayoutParams(-2,-2);chipSpace.setMargins(0,0,Ui.dp(this,8),0);tabs.addView(b,chipSpace);}
             String restored=restoreScreen;restoreScreen="";
             if(restored.equals("detail") && !restoreId.isEmpty())loadDetail(restoreId,restoreType,selectedProvider,selectedKind);
             else if(restored.equals("favorites"))favorites();
@@ -81,40 +86,37 @@ public final class MainActivity extends Activity {
         work("Loading stories…",()->catalog.titles(wantedChannel,wantedQuery,wantedPage),value->{
             posters.clearPending();content.removeAllViews();
             @SuppressWarnings("unchecked") List<JSONObject> titles=(List<JSONObject>)value;
-            status.setText(catalog.warning+" "+(wantedQuery.isEmpty()?"Discover":"Results for “"+wantedQuery+"”")+" · Page "+wantedPage);
+            status.setText(catalog.warning.isEmpty()?(wantedQuery.isEmpty()?"Find your next story":"Results for “"+wantedQuery+"”"):catalog.warning);
             if(titles.isEmpty())content.addView(Ui.text(this,"No titles found.",22,Ui.INK));
             renderTitles(titles);
-            LinearLayout pages=new LinearLayout(this);
-            if(page>1){Button prev=Ui.button(this,"Previous");prev.setOnClickListener(v->{page--;loadCatalog();});pages.addView(prev);}
-            if(!titles.isEmpty()){Button next=Ui.button(this,"Next page");next.setOnClickListener(v->{page++;loadCatalog();});pages.addView(next);}
-            content.addView(pages);
+
         });
     }
     private void renderTitles(List<JSONObject> titles) {
-        GridLayout grid=new GridLayout(this);grid.setColumnCount(getResources().getConfiguration().screenWidthDp>=720?3:2);
-        grid.setUseDefaultMargins(false);content.addView(grid,new LinearLayout.LayoutParams(-1,-2));
-        for(JSONObject item:titles) {
-            LinearLayout card=Ui.card(this);GridLayout.LayoutParams place=new GridLayout.LayoutParams();place.width=0;place.height=-2;place.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);place.setMargins(Ui.dp(this,4),Ui.dp(this,6),Ui.dp(this,4),Ui.dp(this,6));grid.addView(card,place);
-            ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);poster.setBackgroundColor(android.graphics.Color.rgb(35,33,49));poster.setContentDescription(null);card.addView(poster,new LinearLayout.LayoutParams(-1,Ui.dp(this,210)));posters.load(this,poster,item.optString("vod_pic"));
-            TextView title=Ui.text(this,item.optString("vod_name","Untitled"),17,Ui.INK);title.setMaxLines(2);title.setMinLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);card.addView(title);
-            List<String> parts=new ArrayList<>();for(String key:new String[]{"vod_year","vod_area","vod_douban_score"}){String part=item.optString(key);if(!part.isEmpty() && !part.equals("0"))parts.add(part);}
-            if(item.optString("_kind").equals("short"))parts.add("Short drama");TextView info=Ui.text(this,android.text.TextUtils.join(" · ",parts),12,Ui.MUTED);info.setMaxLines(1);info.setEllipsize(android.text.TextUtils.TruncateAt.END);card.addView(info);
-            Button open=Ui.chip(this,"Watch");open.setContentDescription("View "+item.optString("vod_name"));open.setOnClickListener(v->openEdition(item,item.optString("id")));card.addView(open,new LinearLayout.LayoutParams(-1,-2));
-            poster.setOnClickListener(v->openEdition(item,item.optString("id")));title.setOnClickListener(v->openEdition(item,item.optString("id")));
-        }
+        detailScroll.setVisibility(View.GONE);collection.setVisibility(View.VISIBLE);
+        boolean browsing=screen.equals("catalog");
+        CatalogAdapter adapter=new CatalogAdapter(this,posters,titles,browsing&&query.isEmpty()&&page==1,
+            item->openEdition(item,item.optString("id")),browsing&&page>1?()->{page--;loadCatalog();}:null,
+            browsing&&!titles.isEmpty()?()->{page++;loadCatalog();}:null);
+        int columns=getResources().getConfiguration().screenWidthDp>=600?5:3;
+        androidx.recyclerview.widget.GridLayoutManager manager=new androidx.recyclerview.widget.GridLayoutManager(this,columns);
+        manager.setSpanSizeLookup(new androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup(){public int getSpanSize(int position){return adapter.fullWidth(position)?columns:1;}});
+        collection.setLayoutManager(manager);collection.setAdapter(adapter);collection.scrollToPosition(0);
+        if(titles.isEmpty())status.setText(screen.equals("favorites")?"Save a title to start your collection.":"No titles found. Try another search.");
     }
+    private void showContent(){collection.setVisibility(View.GONE);detailScroll.setVisibility(View.VISIBLE);detailScroll.scrollTo(0,0);}
     private void openEdition(JSONObject item,String id) {
         String kind=item.optString("_kind","movie");
         JSONArray editions=item.optJSONArray("_editions");
         if(editions==null || editions.length()<2){loadDetail(id,"0",item.optString("_provider","current"),kind);return;}
-        String[] labels=new String[editions.length()];for(int i=0;i<labels.length;i++)labels[i]="Library edition "+(i+1);
-        new AlertDialog.Builder(this).setTitle("Choose an edition").setItems(labels,(d,i)->{try{JSONObject edition=editions.getJSONObject(i);loadDetail(edition.optString("id"),"0",edition.getString("provider"),kind);}catch(JSONException ignored){}}).show();
+        String[] labels=new String[editions.length()];for(int i=0;i<labels.length;i++)labels[i]="Source "+(i+1);
+        new AlertDialog.Builder(this).setTitle("Playback source").setItems(labels,(d,i)->{try{JSONObject edition=editions.getJSONObject(i);loadDetail(edition.optString("id"),"0",edition.getString("provider"),kind);}catch(JSONException ignored){}}).show();
     }
     private void loadDetail(String id,String audioType,String provider,String kind) {
-        work("Loading title and playback sources…",()->LegacyBackend.get(this,provider).detail(id,audioType,kind),value->{selectedProvider=provider;selectedKind=kind;showDetail((JSONObject)value);});
+        work("Loading title and playback sources…",()->CatalogBackend.get(this,provider).detail(id,audioType,kind),value->{selectedProvider=provider;selectedKind=kind;showDetail((JSONObject)value);});
     }
     private void showDetail(JSONObject detail) throws Exception {
-        currentDetail=detail;final String detailProvider=selectedProvider,detailKind=selectedKind;screen="detail";content.removeAllViews();status.setText("Choose an episode");
+        showContent();currentDetail=detail;final String detailProvider=selectedProvider,detailKind=selectedKind;screen="detail";content.removeAllViews();status.setText("Choose an episode");
         Button back=Ui.button(this,"‹ Back to library");back.setOnClickListener(v->loadCatalog());content.addView(back);
         ImageView artwork=new ImageView(this);artwork.setScaleType(ImageView.ScaleType.CENTER_CROP);artwork.setContentDescription(null);content.addView(artwork,new LinearLayout.LayoutParams(-1,Ui.dp(this,220)));posters.load(this,artwork,detail.optString("vod_pic"));
         content.addView(Ui.text(this,detail.optString("vod_name","Video"),30,Ui.INK));
@@ -130,7 +132,7 @@ public final class MainActivity extends Activity {
         JSONArray episodes=detail.optJSONArray("vod_collection");
         if(episodes==null || episodes.length()==0){content.addView(Ui.text(this,"The server has not supplied playable episodes for this title.",17,Ui.MUTED));return;}
         for(int i=0;i<episodes.length();i++) {JSONObject episode=episodes.getJSONObject(i);Button play=Ui.button(this,"▶  "+episode.optString("title","Episode "+(i+1)));
-            play.setOnClickListener(v->work("Opening episode…",()->LegacyBackend.get(this,detailProvider).playbackJson(detail,episode,sourceLabel),json->launchPlayer(detail,episode,(String)json,detailProvider,detailKind)));content.addView(play);}
+            play.setOnClickListener(v->work("Opening episode…",()->CatalogBackend.get(this,detailProvider).playbackJson(detail,episode,sourceLabel),json->launchPlayer(detail,episode,(String)json,detailProvider,detailKind)));content.addView(play);}
     }
     private void launchPlayer(JSONObject detail,JSONObject episode,String json,String provider,String kind) throws Exception {
         status.setText("Choose an episode");
@@ -140,21 +142,22 @@ public final class MainActivity extends Activity {
             .putExtra("variants",detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString()));
     }
     private String favoriteLabel(JSONObject detail,String provider,String kind) {
-        return getSharedPreferences("favorites",MODE_PRIVATE).contains(provider+":"+kind+":"+detail.optString("id"))?"Saved · remove from My list":"Save to My list";
+        return getSharedPreferences("favorites",MODE_PRIVATE).contains(provider+":"+kind+":"+detail.optString("id"))?"✓ Saved to My Library":"+ Save to My Library";
     }
     private void toggleFavorite(JSONObject detail,String provider,String kind) {
         try {String id=provider+":"+kind+":"+detail.optString("id");android.content.SharedPreferences prefs=getSharedPreferences("favorites",MODE_PRIVATE);
-            if(prefs.contains(id)){prefs.edit().remove(id).apply();Toast.makeText(this,"Removed from My list",Toast.LENGTH_SHORT).show();}
-            else {JSONObject record=new JSONObject();for(String key:new String[]{"id","vod_name","vod_pic","vod_year","vod_area","vod_douban_score"})record.put(key,detail.optString(key));record.put("_provider",provider).put("_kind",kind);prefs.edit().putString(id,record.toString()).apply();Toast.makeText(this,"Saved to My list",Toast.LENGTH_SHORT).show();}
+            if(prefs.contains(id)){prefs.edit().remove(id).apply();Toast.makeText(this,"Removed from My Library",Toast.LENGTH_SHORT).show();}
+            else {JSONObject record=new JSONObject();for(String key:new String[]{"id","vod_name","vod_pic","vod_year","vod_area","vod_douban_score"})record.put(key,detail.optString(key));record.put("_provider",provider).put("_kind",kind);prefs.edit().putString(id,record.toString()).apply();Toast.makeText(this,"Saved to My Library",Toast.LENGTH_SHORT).show();}
         }catch(JSONException ignored){status.setText("Could not save this title.");}
     }
     private void favorites() {
-        generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="favorites";posters.clearPending();content.removeAllViews();status.setText("My list");
+        retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="favorites";posters.clearPending();content.removeAllViews();status.setText("My Library");
         List<JSONObject> saved=new ArrayList<>();for(Object value:getSharedPreferences("favorites",MODE_PRIVATE).getAll().values())try{saved.add(new JSONObject((String)value));}catch(Exception ignored){}
-        if(saved.isEmpty())content.addView(Ui.text(this,"Save titles here to find them later.",20,Ui.INK));else renderTitles(saved);
+        renderTitles(saved);tabs.removeAllViews();Button savedTab=Ui.chip(this,"Saved titles");savedTab.setOnClickListener(v->favorites());tabs.addView(savedTab);Button progress=Ui.chip(this,"Continue watching");progress.setOnClickListener(v->history());tabs.addView(progress);
     }
     private void history() {
-        generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="history";posters.clearPending();content.removeAllViews();status.setText("Continue watching");
+        showContent();
+        retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="history";posters.clearPending();content.removeAllViews();status.setText("Continue watching");
         List<JSONObject> records=WatchHistory.list(this);
         if(records.isEmpty()){content.addView(Ui.text(this,"Your unfinished movies and episodes will appear here.",20,Ui.INK));return;}
         for(JSONObject record:records) {
@@ -170,7 +173,7 @@ public final class MainActivity extends Activity {
     private void resume(JSONObject record) {
         String provider=record.optString("provider","current"),kind=record.optString("kind","movie");
         work("Resuming your episode…",()->{
-            LegacyBackend backend=LegacyBackend.get(this,provider);JSONObject detail=backend.detail(record.optString("id"),record.optString("audioType","0"),kind);
+            CatalogBackend backend=CatalogBackend.get(this,provider);JSONObject detail=backend.detail(record.optString("id"),record.optString("audioType","0"),kind);
             JSONObject episode=EpisodeSelection.select(detail.getJSONArray("vod_collection"),record.optString("collection"),0);
             return new Object[]{detail,episode,backend.playbackJson(detail,episode,"Selected source")};
         },result->{Object[] values=(Object[])result;launchPlayer((JSONObject)values[0],(JSONObject)values[1],(String)values[2],provider,kind);});
@@ -184,19 +187,19 @@ public final class MainActivity extends Activity {
             for(int i=0;i<heights.length;i++)if(heights[i]==prefs.getInt("qualityHeight",0))selected=i;
             new AlertDialog.Builder(this).setTitle("Default video quality").setSingleChoiceItems(labels,selected,(dialog,index)->{prefs.edit().putInt("qualityHeight",heights[index]).apply();dialog.dismiss();}).setNegativeButton("Close",null).show();
         });panel.addView(quality);
-        panel.addView(Ui.text(this,"Available quality and captions depend on each original stream. You can change them in the player.",14,Ui.MUTED));
+        panel.addView(Ui.text(this,"Available quality and captions depend on each stream. You can change them in the player.",14,Ui.MUTED));
         Button clear=Ui.button(this,"Clear watch history");clear.setOnClickListener(v->new AlertDialog.Builder(this).setMessage("Clear watch history and saved playback positions?").setPositiveButton("Clear",(dialog,which)->{WatchHistory.clear(this);Toast.makeText(this,"Watch history cleared",Toast.LENGTH_SHORT).show();if(screen.equals("history"))history();}).setNegativeButton("Cancel",null).show());panel.addView(clear);
         new AlertDialog.Builder(this).setTitle("Playback settings").setView(panel).setPositiveButton("Done",null).show();
     }
     private void options() {
-        new AlertDialog.Builder(this).setTitle("Veyra").setItems(new String[]{"Continue watching","My list","Playback settings","Refresh library"},(dialog,index)->{
+        new AlertDialog.Builder(this).setTitle("Veyra").setItems(new String[]{"Continue watching","My Library","Playback settings","Refresh library"},(dialog,index)->{
             if(index==0)history();else if(index==1)favorites();else if(index==2)settings();else loadChannels();
         }).show();
     }
     @Override protected void onActivityResult(int request,int result,Intent data) {
         super.onActivityResult(request,result,data);
         if(request!=10 || result!=RESULT_OK || data==null || data.getData()==null)return;
-        work("Opening playback file…",()->{try(InputStream in=getContentResolver().openInputStream(data.getData())){if(in==null)throw new IOException();String json=LegacyBackend.read(in,65536);PlaybackJson.parse(json);return json;}},value->{status.setText("Ready");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)value));});
+        work("Opening playback file…",()->{try(InputStream in=getContentResolver().openInputStream(data.getData())){if(in==null)throw new IOException();String json=CatalogBackend.read(in,65536);PlaybackJson.parse(json);return json;}},value->{status.setText("Ready");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)value));});
     }
     @Override public void onBackPressed() {if(!screen.equals("catalog")){loadCatalog();}else super.onBackPressed();}
     @Override protected void onSaveInstanceState(Bundle state) {state.putString("channel",channel);state.putString("query",query);state.putInt("page",page);

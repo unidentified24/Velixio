@@ -18,7 +18,7 @@ import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.ui.PlayerView;
 import app.veyra.data.PlaybackJson;
-import app.veyra.data.LegacyBackend;
+import app.veyra.data.CatalogBackend;
 import app.veyra.data.EpisodeSelection;
 import app.veyra.data.WatchHistory;
 import org.json.*;
@@ -60,8 +60,8 @@ public final class PlayerActivity extends Activity {
     }
     private void createPlayerUi() {
         root=Ui.column(this); header=Ui.column(this); footer=Ui.column(this);
-        Button back=Ui.button(this,"‹  Library"); back.setOnClickListener(v->finish()); header.addView(back);
-        titleView=Ui.text(this,request.title,22,Ui.INK); header.addView(titleView); root.addView(header);
+        Button back=Ui.chip(this,"‹  Library"); back.setOnClickListener(v->finish()); header.addView(back);
+        titleView=Ui.text(this,request.title,18,Ui.INK); header.addView(titleView); root.addView(header);
         view=new PlayerView(this); view.setShowSubtitleButton(true); view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
         view.setContentDescription("Video player"); root.addView(view,new LinearLayout.LayoutParams(-1,0,1));
         view.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updatePip());
@@ -69,17 +69,17 @@ public final class PlayerActivity extends Activity {
         HorizontalScrollView scroll=new HorizontalScrollView(this); scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout actions=new LinearLayout(this); scroll.addView(actions); footer.addView(scroll);
         sourceButton=action(actions,"Source",()->chooseSource());
-        if(getIntent().hasExtra("vodId")) {
-            action(actions,"Previous episode",()->resolveSource(selectedType(),-1));
-            action(actions,"Next episode",()->resolveSource(selectedType(),1));
-        }
-        action(actions,"Quality",()->chooseTracks(C.TRACK_TYPE_VIDEO));
-        action(actions,"Audio",()->chooseTracks(C.TRACK_TYPE_AUDIO));
-        action(actions,"Captions",()->chooseTracks(C.TRACK_TYPE_TEXT));
         miniButton=action(actions,"Mini player",()->enterMiniPlayer());
         miniButton.setVisibility(supportsPip()?View.VISIBLE:View.GONE);
-        action(actions,"Full screen",()->{setRequestedOrientation(getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT : android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);});
-        action(actions,"Retry",()->{ if(getIntent().hasExtra("vodId"))refreshSource(request.sources.get(sourceIndex).id);else{release();startPlayer();} });
+        action(actions,"Controls",()->new AlertDialog.Builder(this).setTitle("Playback").setItems(
+            new String[]{"Quality","Audio language","Captions","Previous episode","Next episode","Rotate screen","Reconnect"},(dialog,index)->{
+                if(index==0)chooseTracks(C.TRACK_TYPE_VIDEO);
+                else if(index==1)chooseTracks(C.TRACK_TYPE_AUDIO);
+                else if(index==2)chooseTracks(C.TRACK_TYPE_TEXT);
+                else if(index==3 || index==4){if(getIntent().hasExtra("vodId"))resolveSource(selectedType(),index==3?-1:1);else Toast.makeText(this,"No episode list for this video",Toast.LENGTH_SHORT).show();}
+                else if(index==5)setRequestedOrientation(getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                else if(getIntent().hasExtra("vodId"))refreshSource(request.sources.get(sourceIndex).id);else{release();startPlayer();}
+            }).show());
         root.addView(footer); setContentView(root);
         root.setOnApplyWindowInsetsListener((v,insets)->{
             if(isMini()) v.setPadding(0,0,0,0);
@@ -93,7 +93,7 @@ public final class PlayerActivity extends Activity {
         TextView message=Ui.text(this,"Reconnecting to the current episode",16,Ui.MUTED);loading.addView(message);
         Button back=Ui.button(this,"Back to library");back.setOnClickListener(v->finish());loading.addView(back);setContentView(loading);Ui.insets(this,loading,20);
         resolver.execute(()->{try {
-            String provider=getIntent().getStringExtra("provider");LegacyBackend backend=LegacyBackend.get(this,provider==null?"current":provider);
+            String provider=getIntent().getStringExtra("provider");CatalogBackend backend=CatalogBackend.get(this,provider==null?"current":provider);
             JSONObject detail=backend.detail(getIntent().getStringExtra("vodId"),getIntent().getStringExtra("audioType")==null?"0":getIntent().getStringExtra("audioType"),getIntent().getStringExtra("kind"));
             JSONObject chosen=EpisodeSelection.select(detail.getJSONArray("vod_collection"),getIntent().getStringExtra("collection"),0);
             String json=backend.playbackJson(detail,chosen,"Selected source");
@@ -106,7 +106,7 @@ public final class PlayerActivity extends Activity {
         }catch(Exception|LinkageError e){runOnUiThread(()->{if(!isDestroyed() && !isFinishing()){resolving=false;message.setText("Playback could not be restored. Return to the title to reconnect.");}});}});
     }
     private Button action(LinearLayout row,String label,Runnable run) {
-        Button b=Ui.button(this,label); b.setOnClickListener(v->run.run());
+        Button b=Ui.chip(this,label); b.setOnClickListener(v->run.run());
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-2,-2); lp.setMargins(0,0,Ui.dp(this,8),0); row.addView(b,lp); return b;
     }
     private String selectedType() {
@@ -120,7 +120,7 @@ public final class PlayerActivity extends Activity {
         String provider=getIntent().getStringExtra("provider"),kind=getIntent().getStringExtra("kind");
         resolver.execute(()->{
             try {
-                LegacyBackend backend=LegacyBackend.get(this,provider==null?"current":provider);
+                CatalogBackend backend=CatalogBackend.get(this,provider==null?"current":provider);
                 JSONObject detail=backend.detail(id,type,kind);
                 JSONObject episode=EpisodeSelection.select(detail.getJSONArray("vod_collection"),collection,episodeOffset);
                 String nextCollection=EpisodeSelection.key(episode);
@@ -182,7 +182,7 @@ public final class PlayerActivity extends Activity {
     private void startPlayer() {
         if(!started || request==null || player!=null || view==null || isFinishing()) return;
         StreamSource source=request.sources.get(sourceIndex);
-        if(source.url.startsWith("http://127.0.0.1:") && !LegacyBackend.isActiveProxy(source.url)) {recoverPlayback();return;}
+        if(source.url.startsWith("http://127.0.0.1:") && !CatalogBackend.isActiveProxy(source.url)) {recoverPlayback();return;}
         sourceButton.setText(source.label+" ▾");
         DataSource.Factory http=StreamHttp.factory(source);
         player=new ExoPlayer.Builder(this).setSeekBackIncrementMs(10000).setSeekForwardIncrementMs(10000).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).build();
