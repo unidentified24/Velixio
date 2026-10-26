@@ -60,7 +60,7 @@ public final class NativeEngine {
                 synchronized(lock) {
                     if(connection!=this)return true;
                     if(message.what==NativeEngineService.READY && message.arg1>0 && message.arg1<=65535){port=message.arg1;result.complete(port);}
-                    else fail("S0"+Math.max(1,Math.min(7,message.arg1))+(message.arg1==7?"; result "+message.arg2:""));
+                    else {String reason=message.getData().getString("reason","");if(!reason.matches("[A-Z_]{0,32}"))reason="UNKNOWN";fail("S0"+Math.max(1,Math.min(7,message.arg1))+(reason.isEmpty()?"":"/"+reason)+(message.arg1==7?"; result "+message.arg2:""));}
                 }
                 return true;
             }));

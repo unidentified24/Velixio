@@ -22,3 +22,6 @@ These results support packaging and regression confidence, not a claim that all 
 - Lint has 22 warnings, including dependency/localization notices, custom-view notices and a dynamic-library-load warning. The dynamic load is restricted to packaged libraries copied into app-private storage, not downloaded code.
 - Physical-device reports for 0.3 were S07 and S09. The initializer's path arguments and loaded basenames have changed; successful real-media playback is not established.
 - Cold-start timing, cached-start timing and visual acceptance remain unmeasured on a phone.
+
+## Version 0.4.1
+A device reported S03 during protection-library startup. Static comparison found a missing JNI `exec` declaration and a field-modifier mismatch; both are corrected. Four regression checks cover the native declarations and sanitized failure classification. These checks do not load the private native libraries or establish successful playback. Runtime confirmation remains pending.

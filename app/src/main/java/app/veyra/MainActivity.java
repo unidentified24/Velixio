@@ -70,7 +70,18 @@ public final class MainActivity extends Activity {
         if(e instanceof IOException && e.getMessage()!=null && (e.getMessage().startsWith("The streaming") || e.getMessage().startsWith("The server") || e.getMessage().startsWith("Session expired")))return e.getMessage();
         return "This request could not complete. Please retry.";
     }
-    private void showError(String message) {status.setText(message);retry.setVisibility(View.VISIBLE);}
+    private void showError(String message) {
+        status.setText(message);retry.setVisibility(View.VISIBLE);
+        if(message.contains("(S")){
+            long pageSize=0;try{pageSize=android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);}catch(Exception ignored){}
+            String report=message+"\n\nVeyra 0.4.1 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
+            new AlertDialog.Builder(this).setTitle("Playback couldn't start").setMessage(report).setPositiveButton("Close",null).setNeutralButton("Copy details",(dialog,which)->{
+                android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Veyra playback diagnostics",report));
+                Toast.makeText(this,"Details copied",Toast.LENGTH_SHORT).show();
+            }).show();
+        }
+    }
     private void loadChannels() {
         work("Connecting your library…",()->catalog.channels(),value->{
             JSONArray channels=(JSONArray)value;tabs.removeAllViews();boolean valid=false;for(int i=0;i<channels.length();i++)if(channels.getJSONObject(i).optString("id").equals(channel))valid=true;if(!valid)channel="";
@@ -116,7 +127,7 @@ public final class MainActivity extends Activity {
         String kind=item.optString("_kind","movie");
         JSONArray choices=item.optJSONArray("_editions");
         work("Opening title…",()->{
-            Exception failure=null;
+            Exception failure=null;List<String> failures=new ArrayList<>();
             int count=choices==null?1:Math.max(1,choices.length());
             for(int i=0;i<count;i++){
                 if(Thread.currentThread().isInterrupted())throw new InterruptedException();
@@ -124,8 +135,9 @@ public final class MainActivity extends Activity {
                 String provider=choice==null?item.optString("_provider","current"):choice.optString("provider","current");
                 String titleId=choice==null?id:choice.optString("id",id);
                 try{return new Object[]{CatalogBackend.get(this,provider).detail(titleId,"0",kind),provider};}
-                catch(Exception e){failure=e;}
+                catch(Exception e){failure=e;failures.add("Connection "+(i+1)+": "+errorMessage(e));}
             }
+            if(failures.size()>1)throw new IOException("The streaming connections could not open this title.\n"+android.text.TextUtils.join("\n",failures));
             throw failure==null?new IOException("The server did not supply this title."):failure;
         },value->{Object[] result=(Object[])value;selectedProvider=(String)result[1];selectedKind=kind;showDetail((JSONObject)result[0]);});
     }

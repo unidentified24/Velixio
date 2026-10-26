@@ -22,3 +22,8 @@ Validate native startup, verification signatures, first decoded frame, source sw
 The native initializer receives the external storage root followed by the app-scoped external-files path. No broad storage permission is requested. Installed, packaged native libraries are staged in app-private code cache using their ABI basenames and marked read-only before loading; each connection retains its non-exported process. No network-downloaded executable code is loaded. Native compatibility remains unverified.
 
 Catalog requests run concurrently across connections. Home metadata is restricted to title identifiers, artwork, rating, year and connection identity, with a 100-title / 512-KiB bound and seven-day display lifetime. It contains no stream URLs or session tokens. Connection failure triggers the next matching edition automatically; server source variants remain explicit.
+
+## Native ABI and error reporting
+The JNI class declares both `load(String,String,String,String,String,String,String):int` and `exec(String,String,String):int`. Both are public instance native methods. The protection bridge exposes a mutable public static Map and its static native string lookup. The app does not invoke `exec`; its declaration preserves the SDK interface for native registration.
+
+Failure categories are fixed labels such as JNI_METHOD, JNI_CLASS, MISSING_FILE, MISSING_SYMBOL and LINKER_NAMESPACE. Raw exception messages are classified inside the service and discarded. Fallback retains a safe message for each attempted connection. Device diagnostics contain model, Android version, ABI list and page size, copied only on the user's action.

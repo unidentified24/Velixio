@@ -11,7 +11,7 @@ An Android streaming app built around a quiet, artwork-led interface and a capab
 - No wallet, viewing-credit countdown, reward-ad requirement or balance deduction.
 
 ## Development status
-Version 0.4 is in device testing. It builds successfully; 20 backend, episode and Android lifecycle tests pass, and lint reports no errors. Live playback is **not yet verified**.
+Version 0.4.1 is in device testing. It builds successfully; 24 backend, episode, native-interface and Android lifecycle tests pass, and lint reports no errors. Live playback is **not yet verified**.
 
 Device testing reported S07 (native initialization returned an invalid port) and S09 (service connection failure or process exit). The current build aligns the SDK storage arguments and library basenames with the service integration contract. A remaining S07 includes the numeric native result. These changes require device confirmation.
 
@@ -34,3 +34,5 @@ The repository builds without credentials. Live access requires locally supplied
 Device tests use a public player fixture and do not establish live-service compatibility. See [verification](docs/VERIFICATION.md) and [release work](docs/ROADMAP.md). CI is manually triggered during development.
 
 This repository is private. No project-wide open-source license has been granted. Dependency and private runtime terms remain applicable; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+The 0.4.1 patch restores a native method declaration required by the integration ABI and the protection interface's mutable static map. Startup errors now include a sanitized failure category and preserve both connection attempts. A Copy details action includes Android version, supported ABIs and memory page size, without native exception text, credentials, stream URLs or private paths. The reported S03 failure still needs device verification; this is not a confirmed playback fix.

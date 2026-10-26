@@ -23,7 +23,7 @@ public abstract class NativeEngineService extends Service {
             try {
                 if(port==0)port=initialize(message.getData().getString("configuration",""));
                 response.what=READY;response.arg1=port;
-            }catch(Exception|LinkageError e){response.what=FAILED;response.arg1=stage;response.arg2=nativeResult; /* Never send exception text: it may contain private inputs. */ }
+            }catch(Exception|LinkageError e){response.what=FAILED;response.arg1=stage;response.arg2=nativeResult; Bundle safe=new Bundle();safe.putString("reason",stage==7?"INVALID_PORT":EngineFailure.classify(e));response.setData(safe); /* Raw native messages never cross this boundary. */ }
             try{message.replyTo.send(response);}catch(RemoteException ignored){}
             return true;
         }));
