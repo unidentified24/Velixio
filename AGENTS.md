@@ -21,3 +21,6 @@
 - Local-proxy playback entries are internal-only and must match the active native port; user playback-file imports must reject them.
 
 - Owner now requests completing implementation before further tests. Keep automatic test triggers manual until the final implementation checkpoint. Earlier green results do not cover the new engine/history/settings/caption/UI changes.
+
+- Native initialization configuration must match Veyra's installed package and actual APK signing certificate. Verify the packaged configuration after signing; changing signing identities requires new private native binding values. Never copy stale native identity values over the verified local profiles.
+- The protected runtime requires its private companion data asset as well as shared libraries. Verify its presence in integration APKs while excluding it from Git.

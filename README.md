@@ -11,9 +11,9 @@ An Android streaming app built around a quiet, artwork-led interface and a capab
 - No wallet, viewing-credit countdown, reward-ad requirement or balance deduction.
 
 ## Development status
-Version 0.4.1 is in device testing. It builds successfully; 24 backend, episode, native-interface and Android lifecycle tests pass, and lint reports no errors. Live playback is **not yet verified**.
+Version 0.4.2 is in device testing. It builds successfully; 24 backend, episode, native-interface and Android lifecycle tests pass, and lint reports no errors. Live playback is **not yet verified**.
 
-Device testing reported S07 (native initialization returned an invalid port) and S09 (service connection failure or process exit). The current build aligns the SDK storage arguments and library basenames with the service integration contract. A remaining S07 includes the numeric native result. These changes require device confirmation.
+Device reports isolated an initialization return of -1 on one connection and protection-library startup failure on the other. Native inspection found an app-identity mismatch; the private configurations now match Veyra's own package and signing certificate. A missing companion protection asset has also been restored to private build inputs. These are verified packaging/configuration corrections, but actual video playback remains **unverified** until the updated build runs on an ARM device.
 
 Home now presents highly rated titles, recent releases and discovery rows from movie and series metadata. This is metadata-based ranking, not a personalized recommendation claim. Catalog connections load concurrently; a bounded app-private metadata preview appears on repeat launches while fresh results load. Title taps resolve a connection automatically and try the next matching edition after a failure. Original/Sub choices remain available separately.
 

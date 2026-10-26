@@ -25,3 +25,10 @@ These results support packaging and regression confidence, not a claim that all 
 
 ## Version 0.4.1
 A device reported S03 during protection-library startup. Static comparison found a missing JNI `exec` declaration and a field-modifier mismatch; both are corrected. Four regression checks cover the native declarations and sanitized failure classification. These checks do not load the private native libraries or establish successful playback. Runtime confirmation remains pending.
+
+## Version 0.4.2
+Native inspection identified an installed-app identity check before media initialization. Its package comparison rejects the previous private native profile; the profile was bound to a different package and certificate. The expected binding calculation was independently verified against both supplied SDK configurations before preparing Veyra-specific values locally. Server credentials and native binaries were not modified.
+
+A companion protection data asset was missing and is now included only in private build assets. Verification on the final APK confirmed both native identity bindings against its actual signing certificate and package, exact companion-asset bytes, and unchanged native libraries for both ABIs.
+
+Debug build, 24 automated tests and lint passed (no lint errors; 22 warnings). Physical-device decoding, authorization and full content parity remain unverified. The companion asset's role in resolving JNI startup remains to be confirmed at runtime.

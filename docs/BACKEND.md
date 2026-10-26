@@ -27,3 +27,8 @@ Catalog requests run concurrently across connections. Home metadata is restricte
 The JNI class declares both `load(String,String,String,String,String,String,String):int` and `exec(String,String,String):int`. Both are public instance native methods. The protection bridge exposes a mutable public static Map and its static native string lookup. The app does not invoke `exec`; its declaration preserves the SDK interface for native registration.
 
 Failure categories are fixed labels such as JNI_METHOD, JNI_CLASS, MISSING_FILE, MISSING_SYMBOL and LINKER_NAMESPACE. Raw exception messages are classified inside the service and discarded. Fallback retains a safe message for each attempted connection. Device diagnostics contain model, Android version, ABI list and page size, copied only on the user's action.
+
+## Build identity requirements
+Native initialization binds to the installed package and signing certificate as well as the SDK version. Private native configuration must match the APK being distributed; copying a configuration for another application causes initialization to return -1 before media startup. The HTTP API configuration and native identity configuration are separate.
+
+The protected runtime also requires its companion data asset in the private assets directory. Packaging only its shared libraries is incomplete. Private binary assets and native configuration values remain outside Git. Check both asset presence and signing-identity consistency on the packaged APK.
