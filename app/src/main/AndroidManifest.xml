@@ -6,6 +6,7 @@
         <service android:name=".data.CurrentEngineService" android:exported="false" android:process=":stream_current" />
         <service android:name=".data.ClassicEngineService" android:exported="false" android:process=":stream_classic" />
         <activity android:name=".PlayerActivity" android:exported="false" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

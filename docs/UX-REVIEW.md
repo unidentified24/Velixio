@@ -19,3 +19,10 @@ Streaming adapters and private runtime inputs are unchanged. Recommendation rank
 The owner confirmed movie playback and the player are good in 0.6.0. Zuno preserves that integration and introduces a new wordmark, launcher icon, Amethyst/Ocean/Ember/OLED palettes and adjustable poster density. The feature uses a portrait layout, varies between visits and has an explicit Next pick action. Home expands discovery across three catalog pages in the background while existing results remain visible. Rows use real rating/year metadata and local saved/history entries; this does not establish personalized recommendation quality.
 
 Visible poster save controls and featured/detail My list actions feed the same library. Customize provides `.zunodata` export/import; see ZUNO-DATA.md. Phone checks still include theme appearance, scrolling performance, file-picker backup/restore and actual catalog variety.
+
+## Zuno 0.8.0: dedicated settings experience
+The owner's screenshot exposed a platform AlertDialog used as the primary Customize navigation. That menu and the nested preference dialogs have been removed. Settings is now a separate, non-exported Activity with an overview and full Appearance, Playback and Your data pages. Back returns through the page hierarchy. Color palettes apply inline with selected cards; poster density and video quality are inline choices. Backup review and history-clearing confirmation are dedicated pages. Export/import progress and results appear in a top status banner.
+
+Settings changes are reflected when returning to browsing. Empty saved/history screens have clear explanations and a discovery action; history cards include artwork, progress and a compact resume action. Remaining small catalog/player dialogs inherit the active palette instead of a generic gray background.
+
+Phone acceptance still needs to cover touch targets with accessibility font scaling, theme contrast, scrolling, TalkBack navigation, Android file-picker return paths and the complete browse/save/watch/restore flow. The test suite checks behavior and bounded layouts; it does not establish visual release acceptance on a physical device.

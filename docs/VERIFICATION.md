@@ -48,3 +48,8 @@ All 27 streaming adapter/private-input baseline hashes match. The signed APK pas
 The owner confirmed movie playback and player behavior in 0.6.0. The Zuno update builds successfully, including device-test APK compilation. All 37 JVM/lifecycle tests pass: 26 prior tests, nine backup validation/round-trip tests and two Home/save-action tests. Lint reports no errors and 21 warnings, including dependency/localization/custom-view notices, the unused previous icon and the existing packaged dynamic-library loading warning.
 
 All 27 streaming adapter/private-input hashes match the working baseline. Final APK checks verify its signature, package/version, both native identity bindings, companion asset and all eight native libraries. Physical-device theme appearance, discovery quality, smoothness and Android file-picker flows remain to be checked on the owner-installed build. Device instrumentation was compiled, not executed.
+
+## Zuno 0.8.0 checkpoint
+Debug APK assembly, device-test APK compilation, all 42 JVM/lifecycle tests and lint completed successfully. Five additional tests cover dedicated settings navigation without modal menus, theme/density updates, history-clear cancellation/confirmation, export document-picker intent and page restoration at a narrow viewport. Lint has zero errors and 18 warnings.
+
+All 27 streaming adapter/private-input baseline hashes are unchanged. Final APK signature, version, both native bindings, private companion asset and eight native libraries pass verification. No physical-device visual, accessibility or frame-performance acceptance was run for this update; those remain release acceptance work. Device instrumentation was compiled, not executed.

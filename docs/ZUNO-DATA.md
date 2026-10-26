@@ -1,6 +1,6 @@
 # Zuno data backups
 
-Open Customize, then Customize & back up, to export or import a `.zunodata` file using Android's file picker. No storage permission is required.
+Open Settings, then Your data, to export or import a `.zunodata` file using Android's file picker. No storage permission is required.
 
 Version 1 is UTF-8 JSON with a `zunodata` format marker and version number. It contains saved-title metadata, up to 100 history records, up to 200 playback positions and supported appearance/playback preferences. Lists support up to 1,000 saved titles. Video files, stream URLs, authentication data, service configuration and runtime binaries are excluded. Poster links with query parameters are omitted from exports.
 
