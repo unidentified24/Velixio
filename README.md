@@ -1,4 +1,4 @@
-# Veyra
+# Zuno
 
 An Android streaming app built around a quiet, artwork-led interface and a capable video player.
 
@@ -13,9 +13,11 @@ An Android streaming app built around a quiet, artwork-led interface and a capab
 ## Development status
 The owner confirmed playback works in version 0.4.2 on their Android phone. This confirms the reported playback issue is resolved for their test; it is not a complete content, quality or source-parity audit.
 
-Version 0.6.0 makes playback edge-to-edge with tap-to-show controls that hide together, landscape movie playback, a compact options menu, and optional fit/fill sizing. Search has a dedicated entry screen; Library has its own filters, and returning from a title restores the originating list position. Compact controls retain 48dp touch targets. See [interface review](docs/UX-REVIEW.md).
+Version 0.7.0 introduces Zuno: a custom geometric wordmark and launcher icon, four selectable dark themes, comfortable or compact poster sizing, visible save controls on posters, and portable `.zunodata` backups. Home expands discovery over three catalog pages, includes saved/continue-watching rows, varies the featured selection, and offers a Next pick action. Rankings use available ratings and years, not invented personalization signals.
 
-The working streaming adapters and private runtime inputs are preserved byte-for-byte. Private initialization values match Veyra's signing identity, and the companion runtime asset remains packaged locally. Native binaries and credentials remain outside Git.
+Customize opens theme, density, export and import settings. Backups include saved titles, viewing history, playback positions and preferences; they exclude credentials, private runtime configuration and media URLs. Import validates the entire document before offering a merge summary. The installed application identity is retained so existing installations update in place and keep their library.
+
+The working streaming adapters and private runtime inputs are preserved byte-for-byte. Private initialization values match Zuno's signing identity, and the companion runtime asset remains packaged locally. Native binaries and credentials remain outside Git.
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.9:

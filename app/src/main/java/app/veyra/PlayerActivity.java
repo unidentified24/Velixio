@@ -49,7 +49,7 @@ public final class PlayerActivity extends Activity {
         public void run() { remember(); handler.postDelayed(this,5000); }
     };
     @Override public void onCreate(Bundle saved) {
-        super.onCreate(saved);
+        super.onCreate(saved);Ui.configure(this);
         if(saved!=null)cropVideo=saved.getBoolean("cropVideo",false);
         else if(!"short".equals(getIntent().getStringExtra("kind")))setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         if(saved==null && getSharedPreferences("settings",MODE_PRIVATE).getBoolean("rememberSpeed",true))speed=getSharedPreferences("settings",MODE_PRIVATE).getFloat("speed",1f);
@@ -237,7 +237,7 @@ public final class PlayerActivity extends Activity {
         player.setTrackSelectionParameters(trackPreferences);
         player.setMediaItem(new MediaItem.Builder().setMediaId(request.contentId+":"+source.id).setUri(source.url).setMimeType(source.mimeType).setSubtitleConfigurations(captions).build());
         view.setPlayer(player); player.seekTo(position); player.setPlaybackSpeed(speed); player.prepare(); player.setPlayWhenReady(playWhenReady);
-        session=new MediaSession(this,"VeyraPlayer");
+        session=new MediaSession(this,"ZunoPlayer");
         session.setCallback(new MediaSession.Callback() {
             @Override public void onPlay() { if(player!=null)player.play(); }
             @Override public void onPause() { if(player!=null)player.pause(); }
@@ -270,7 +270,7 @@ public final class PlayerActivity extends Activity {
     }
     private void enterMiniPlayer() {
         if(Build.VERSION.SDK_INT<26 || !supportsPip() || player==null)return;
-        try { if(!enterPictureInPictureMode(pipParams()))Toast.makeText(this,"Allow picture-in-picture for Veyra in Android settings",Toast.LENGTH_LONG).show(); }
+        try { if(!enterPictureInPictureMode(pipParams()))Toast.makeText(this,"Allow picture-in-picture for Zuno in Android settings",Toast.LENGTH_LONG).show(); }
         catch(IllegalStateException|IllegalArgumentException e) { Toast.makeText(this,"Picture-in-picture is unavailable on this device",Toast.LENGTH_LONG).show(); }
     }
     @Override protected void onUserLeaveHint() { super.onUserLeaveHint(); if(Build.VERSION.SDK_INT<31 && canAutoPip())enterMiniPlayer(); }

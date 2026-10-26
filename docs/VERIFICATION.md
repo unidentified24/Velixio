@@ -43,3 +43,8 @@ Controls have reset theme minimum widths, smaller inset surfaces and 48dp touch 
 Debug APK, Android device-test APK compilation, 26 JVM/lifecycle regression tests and lint completed successfully. Lint reports zero errors and 18 warnings (dependency versions, localization, a custom-view constructor and packaged dynamic-library loading). The two added tests cover full-window video layout with controls shown/hidden and app overlay visibility following playback controls.
 
 All 27 streaming adapter/private-input baseline hashes match. The signed APK passes both private native identity bindings, companion-asset equality and all eight native-library equality checks. These checks preserve the working integration; they do not replace physical-device streaming, visual or performance acceptance. Device instrumentation was compiled, not run. See UX-REVIEW.md for remaining phone checks.
+
+## Zuno 0.7.0 checkpoint
+The owner confirmed movie playback and player behavior in 0.6.0. The Zuno update builds successfully, including device-test APK compilation. All 37 JVM/lifecycle tests pass: 26 prior tests, nine backup validation/round-trip tests and two Home/save-action tests. Lint reports no errors and 21 warnings, including dependency/localization/custom-view notices, the unused previous icon and the existing packaged dynamic-library loading warning.
+
+All 27 streaming adapter/private-input hashes match the working baseline. Final APK checks verify its signature, package/version, both native identity bindings, companion asset and all eight native libraries. Physical-device theme appearance, discovery quality, smoothness and Android file-picker flows remain to be checked on the owner-installed build. Device instrumentation was compiled, not executed.

@@ -14,3 +14,8 @@ The review used published product descriptions from [Netflix](https://about.netf
 Confirm the controls disappear while playing and reappear on tap; Android navigation buttons hide; rotation, cutout placement, Fit/Fill and PiP work on the S25 FE. Check readable text at enlarged font sizes, scrolling smoothness and return navigation on actual catalog results. Automated layout/lifecycle checks cannot establish visual acceptance or physical-device performance.
 
 Streaming adapters and private runtime inputs are unchanged. Recommendation ranking and complete content coverage are not established by this interface review.
+
+## Zuno 0.7.0
+The owner confirmed movie playback and the player are good in 0.6.0. Zuno preserves that integration and introduces a new wordmark, launcher icon, Amethyst/Ocean/Ember/OLED palettes and adjustable poster density. The feature uses a portrait layout, varies between visits and has an explicit Next pick action. Home expands discovery across three catalog pages in the background while existing results remain visible. Rows use real rating/year metadata and local saved/history entries; this does not establish personalized recommendation quality.
+
+Visible poster save controls and featured/detail My list actions feed the same library. Customize provides `.zunodata` export/import; see ZUNO-DATA.md. Phone checks still include theme appearance, scrolling performance, file-picker backup/restore and actual catalog variety.

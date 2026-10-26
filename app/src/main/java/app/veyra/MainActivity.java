@@ -21,6 +21,7 @@ public final class MainActivity extends Activity {
     private androidx.recyclerview.widget.RecyclerView collection;
     private EditText search;
     private Button retry;
+    private AlertDialog customizeDialog;
     private final List<NavItem> navigationItems=new ArrayList<>();
     private Runnable repeatRequest;
     private String channel="", query="", screen="catalog";
@@ -33,7 +34,8 @@ public final class MainActivity extends Activity {
     private String restoreScreen="",restoreId="",restoreType="0",returnScreen="catalog";
     private android.os.Parcelable returnScroll;
     @Override public void onCreate(Bundle saved) {
-        super.onCreate(saved);
+        super.onCreate(saved);Ui.configure(this);
+        if(saved==null){android.content.SharedPreferences discovery=getSharedPreferences("discovery",0);discovery.edit().putLong("visit",discovery.getLong("visit",0)+1).apply();}
         if(saved!=null){
             channel=saved.getString("channel","");query=saved.getString("query","");page=saved.getInt("page",1);
             returnScreen=saved.getString("returnScreen","catalog");returnScroll=saved.getParcelable("returnScroll");restoreScreen=saved.getString("screen","");restoreId=saved.getString("detailId","");restoreType=saved.getString("audioType","0");
@@ -42,7 +44,7 @@ public final class MainActivity extends Activity {
         catalog=new CombinedCatalog(this);
         root=Ui.column(this);
         LinearLayout brand=new LinearLayout(this);BrandView logo=new BrandView(this);brand.addView(logo,new LinearLayout.LayoutParams(Ui.dp(this,120),Ui.dp(this,48)));View brandSpace=new View(this);brand.addView(brandSpace,new LinearLayout.LayoutParams(0,1,1));
-        Button menu=Ui.chip(this,"•••");menu.setContentDescription("Library options");menu.setOnClickListener(v->options());brand.addView(menu);root.addView(brand);
+        Button menu=Ui.quiet(this,"Customize");menu.setContentDescription("Customize Zuno and manage your data");menu.setOnClickListener(v->options());brand.addView(menu);root.addView(brand);
         search=new EditText(this);search.setSingleLine(true);search.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});search.setHint("Search movies, series and short dramas");search.setTextColor(Ui.INK);search.setHintTextColor(Ui.MUTED);search.setText(query);search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
         search.setOnEditorActionListener((v,action,event)->{if(action==EditorInfo.IME_ACTION_SEARCH){query=search.getText().toString().trim();page=1;((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();loadCatalog();return true;}return false;});root.addView(search);search.setVisibility(View.GONE);
         HorizontalScrollView navigation=new HorizontalScrollView(this);tabs=new LinearLayout(this);navigation.addView(tabs);navigation.setHorizontalScrollBarEnabled(false);root.addView(navigation);
@@ -92,10 +94,10 @@ public final class MainActivity extends Activity {
         status.setText(message);retry.setVisibility(View.VISIBLE);
         if(message.contains("(S")){
             long pageSize=0;try{pageSize=android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);}catch(Exception ignored){}
-            String report=message+"\n\nVeyra 0.6.0 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
+            String report=message+"\n\nZuno 0.7.0 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
             new AlertDialog.Builder(this).setTitle("Playback couldn't start").setMessage(report).setPositiveButton("Close",null).setNeutralButton("Copy details",(dialog,which)->{
                 android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Veyra playback diagnostics",report));
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zuno playback diagnostics",report));
                 Toast.makeText(this,"Details copied",Toast.LENGTH_SHORT).show();
             }).show();
         }
@@ -127,6 +129,7 @@ public final class MainActivity extends Activity {
             status.setText(catalog.warning.isEmpty()?(wantedQuery.isEmpty()?"Find your next story":"Results for “"+wantedQuery+"”"):catalog.warning);
             if(titles.isEmpty())content.addView(Ui.text(this,"No titles found.",22,Ui.INK));
             renderTitles(titles);if(!titles.isEmpty()&&catalog.warning.isEmpty()&&wantedQuery.isEmpty())status.setVisibility(View.GONE);
+            if(wantedQuery.isEmpty()&&wantedChannel.equals("discover")&&wantedPage==1)expandHome(titles);
 
         });
     }
@@ -135,12 +138,12 @@ public final class MainActivity extends Activity {
         boolean browsing=screen.equals("catalog")||screen.equals("search");
         if(browsing && (channel.isEmpty()||channel.equals("discover")) && query.isEmpty() && page==1 && !titles.isEmpty()){
             collection.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
-            collection.setAdapter(new HomeAdapter(this,posters,titles,item->openEdition(item,item.optString("id"))));restoreBrowsePosition();return;
+            collection.setAdapter(new HomeAdapter(this,posters,titles,item->{if(item.has("_resume"))resume(item.optJSONObject("_resume"));else openEdition(item,item.optString("id"));}));restoreBrowsePosition();return;
         }
         CatalogAdapter adapter=new CatalogAdapter(this,posters,titles,browsing&&query.isEmpty()&&page==1,
             item->openEdition(item,item.optString("id")),browsing&&page>1?()->{page--;loadCatalog();}:null,
             browsing&&!titles.isEmpty()?()->{page++;loadCatalog();}:null);
-        int columns=getResources().getConfiguration().screenWidthDp>=600?5:3;
+        int columns=Ui.columns(this);
         androidx.recyclerview.widget.GridLayoutManager manager=new androidx.recyclerview.widget.GridLayoutManager(this,columns);
         manager.setSpanSizeLookup(new androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup(){public int getSpanSize(int position){return adapter.fullWidth(position)?columns:1;}});
         collection.setLayoutManager(manager);collection.setAdapter(adapter);if(returnScroll!=null)restoreBrowsePosition();else collection.scrollToPosition(0);
@@ -276,20 +279,44 @@ public final class MainActivity extends Activity {
         Button clear=Ui.quiet(this,"Clear watch history");clear.setOnClickListener(v->new AlertDialog.Builder(this).setMessage("Clear watch history and saved playback positions?").setPositiveButton("Clear",(dialog,which)->{WatchHistory.clear(this);Toast.makeText(this,"Watch history cleared",Toast.LENGTH_SHORT).show();if(screen.equals("history"))history();}).setNegativeButton("Cancel",null).show());panel.addView(clear);
         new AlertDialog.Builder(this).setTitle("Playback settings").setView(panel).setPositiveButton("Done",null).show();
     }
+    private void expandHome(List<JSONObject> first){
+        final int ticket=generation;pending=io.submit(()->{
+            LinkedHashMap<String,JSONObject> all=new LinkedHashMap<>();for(JSONObject item:first)all.put(LibraryStore.key(item),item);boolean partial=false;
+            for(int next=2;next<=3;next++){if(Thread.currentThread().isInterrupted())return;try{for(JSONObject item:catalog.titles("discover","",next))all.put(LibraryStore.key(item),item);if(!catalog.warning.isEmpty())partial=true;}catch(Exception e){partial=true;}}
+            final boolean incomplete=partial;List<JSONObject> expanded=new ArrayList<>(all.values());runOnUiThread(()->{if(isDestroyed()||isFinishing()||ticket!=generation||!screen.equals("catalog"))return;
+                android.os.Parcelable position=collection.getLayoutManager()==null?null:collection.getLayoutManager().onSaveInstanceState();renderTitles(expanded);if(position!=null)collection.getLayoutManager().onRestoreInstanceState(position);
+                if(incomplete){status.setText("Some discovery rows could not refresh. Available titles are shown.");status.setVisibility(View.VISIBLE);}
+            });
+        });
+    }
+    private void customize(){
+        android.content.SharedPreferences prefs=getSharedPreferences("settings",0);LinearLayout panel=Ui.column(this);int pad=Ui.dp(this,20);panel.setPadding(pad,pad,pad,pad);
+        panel.addView(Ui.text(this,"Make it yours",25,Ui.INK));panel.addView(Ui.text(this,"Color, artwork and your movie collection",14,Ui.MUTED));
+        String[] names={"Amethyst","Ocean","Ember","OLED black"};Button theme=Ui.chip(this,"Theme · "+names[Math.max(0,Math.min(3,prefs.getInt("theme",0)))]);theme.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Choose your theme").setSingleChoiceItems(names,prefs.getInt("theme",0),(d,index)->{prefs.edit().putInt("theme",index).apply();d.dismiss();if(customizeDialog!=null)customizeDialog.dismiss();recreate();}).setNegativeButton("Cancel",null).show());panel.addView(theme);
+        Switch compact=new Switch(this);compact.setText("Compact posters · more titles per row");compact.setTextColor(Ui.INK);compact.setChecked(prefs.getBoolean("compactPosters",false));compact.setMinHeight(Ui.dp(this,56));compact.setOnCheckedChangeListener((v,value)->{prefs.edit().putBoolean("compactPosters",value).apply();if(customizeDialog!=null)customizeDialog.dismiss();recreate();});panel.addView(compact);
+        Button playback=Ui.quiet(this,"Playback preferences  ›");playback.setOnClickListener(v->settings());panel.addView(playback);
+        panel.addView(Ui.text(this,"Your data, with you",19,Ui.INK));panel.addView(Ui.text(this,"Back up My list, watch history, playback positions and preferences. Backups contain personal viewing metadata; keep them somewhere you trust.",13,Ui.MUTED));
+        Button export=Ui.primary(this,"Export .zunodata");export.setOnClickListener(v->startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/octet-stream").putExtra(Intent.EXTRA_TITLE,"Zuno-"+new java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.ROOT).format(new Date())+".zunodata"),40));panel.addView(export);
+        Button restore=Ui.chip(this,"Import .zunodata");restore.setOnClickListener(v->startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"),41));panel.addView(restore);
+        ScrollView scroll=new ScrollView(this);scroll.addView(panel);customizeDialog=new AlertDialog.Builder(this).setView(scroll).setPositiveButton("Done",null).create();customizeDialog.show();
+    }
     private void options() {
-        new AlertDialog.Builder(this).setTitle("Veyra").setItems(new String[]{"Continue watching","My Library","Playback settings","Refresh library"},(dialog,index)->{
-            if(index==0)history();else if(index==1)favorites();else if(index==2)settings();else loadChannels();
+        new AlertDialog.Builder(this).setTitle("Zuno").setItems(new String[]{"Customize & back up","My list","Continue watching","Playback preferences","Refresh discovery"},(dialog,index)->{
+            if(index==0)customize();else if(index==1)favorites();else if(index==2)history();else if(index==3)settings();else{getSharedPreferences("discovery",0).edit().putLong("visit",getSharedPreferences("discovery",0).getLong("visit",0)+1).apply();query="";channel="discover";page=1;loadChannels();}
         }).show();
     }
     @Override protected void onActivityResult(int request,int result,Intent data) {
-        super.onActivityResult(request,result,data);
-        if(request!=10 || result!=RESULT_OK || data==null || data.getData()==null)return;
-        work("Opening playback file…",()->{try(InputStream in=getContentResolver().openInputStream(data.getData())){if(in==null)throw new IOException();String json=CatalogBackend.read(in,65536);PlaybackJson.parse(json);return json;}},value->{status.setText("Ready");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)value));});
+        super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null||data.getData()==null)return;
+        android.net.Uri uri=data.getData();
+        if(request==40){work("Exporting your Zuno data…",()->{byte[] bytes=ZunoData.export(this).toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);try(OutputStream out=getContentResolver().openOutputStream(uri,"wt")){if(out==null)throw new IOException();out.write(bytes);}return "done";},value->{status.setVisibility(View.GONE);Toast.makeText(this,"Zuno data exported",Toast.LENGTH_LONG).show();});return;}
+        if(request==41){work("Reading your backup…",()->{try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new IOException();return ZunoData.validate(CatalogBackend.read(in,ZunoData.LIMIT));}},value->{JSONObject backup=(JSONObject)value;status.setVisibility(View.GONE);new AlertDialog.Builder(this).setTitle("Import Zuno data?").setMessage(backup.getJSONArray("favorites").length()+" saved titles and "+backup.getJSONArray("history").length()+" history entries. Lists will be merged; imported playback positions and preferences will replace matching values.").setPositiveButton("Import",(d,w)->{try{ZunoData.restore(this,backup);Toast.makeText(this,"Zuno data imported",Toast.LENGTH_LONG).show();recreate();}catch(Exception e){Toast.makeText(this,"This backup could not be restored",Toast.LENGTH_LONG).show();}}).setNegativeButton("Cancel",null).show();});return;}
+        if(request!=10)return;
+        work("Opening playback file…",()->{try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new IOException();String json=CatalogBackend.read(in,65536);PlaybackJson.parse(json);return json;}},value->{status.setText("Ready");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)value));});
     }
     @Override public void onBackPressed() {if(screen.equals("detail"))backFromTitle();else if(!screen.equals("catalog"))goHome();else super.onBackPressed();}
     @Override protected void onSaveInstanceState(Bundle state) {state.putString("channel",channel);state.putString("query",query);state.putInt("page",page);
         state.putString("returnScreen",returnScreen);state.putParcelable("returnScroll",returnScroll);state.putString("screen",screen);state.putString("provider",selectedProvider);state.putString("kind",selectedKind);
         if(currentDetail!=null){state.putString("detailId",currentDetail.optString("id"));state.putString("audioType",currentDetail.optString("audio_type","0"));}
         super.onSaveInstanceState(state);}
-    @Override protected void onDestroy() {generation++;if(pending!=null)pending.cancel(true);posters.close();catalog.close();io.shutdownNow();super.onDestroy();}
+    @Override protected void onDestroy() {if(customizeDialog!=null)customizeDialog.dismiss();generation++;if(pending!=null)pending.cancel(true);posters.close();catalog.close();io.shutdownNow();super.onDestroy();}
 }

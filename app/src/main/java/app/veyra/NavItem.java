@@ -23,5 +23,5 @@ final class NavItem extends LinearLayout {
         };addView(icon,new LayoutParams(Ui.dp(activity,24),Ui.dp(activity,24)));
         label=Ui.text(activity,name,11,color);label.setPadding(0,Ui.dp(activity,4),0,0);label.setGravity(Gravity.CENTER);addView(label);setActive(index==0);
     }
-    void setActive(boolean selected){setSelected(selected);color=selected?Color.rgb(92,224,192):Ui.MUTED;label.setTextColor(color);icon.invalidate();}
+    void setActive(boolean selected){setSelected(selected);color=selected?Ui.ACCENT:Ui.MUTED;label.setTextColor(color);icon.invalidate();}
 }

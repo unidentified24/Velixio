@@ -1,10 +1,6 @@
 <resources>
-    <style name="Theme.Veyra" parent="android:style/Theme.Material.NoActionBar">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#5CE0C0</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">#090D12</item>
-        <item name="android:navigationBarColor">#090D12</item>
-        <item name="android:windowBackground">#090D12</item>
-    </style>
+<style name="Theme.Zuno" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#BC9CFF</item><item name="android:windowLightStatusBar">false</item><item name="android:statusBarColor">#100E19</item><item name="android:navigationBarColor">#100E19</item><item name="android:windowBackground">#100E19</item></style>
+<style name="Theme.Zuno.Ocean" parent="Theme.Zuno"><item name="android:colorAccent">#64D9F4</item></style>
+<style name="Theme.Zuno.Ember" parent="Theme.Zuno"><item name="android:colorAccent">#FFB582</item></style>
+<style name="Theme.Zuno.Oled" parent="Theme.Zuno"><item name="android:colorAccent">#EEEEEE</item></style>
 </resources>
