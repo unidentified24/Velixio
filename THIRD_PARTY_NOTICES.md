@@ -1,20 +1,49 @@
 # Third-party software
-This repository currently has no project-wide open-source license.
 
-Dependencies:
-- AndroidX Media3 (ExoPlayer, HLS, DASH and UI), Apache License 2.0. Source: https://github.com/androidx/media
-- Android Gradle Plugin and Android SDK tooling: retain their applicable upstream notices.
-- Gradle wrapper/tooling: Apache License 2.0. Source: https://github.com/gradle/gradle
+Zuno is licensed under the **GNU General Public License version 3.0 (GPL-3.0)**.
 
-Before distributing binaries, generate an inventory of resolved direct and transitive dependencies and include all required notices and license texts.
-This file is a development inventory, not a complete distribution notice bundle.
+See the `LICENSE` file in the repository for the full license text.
 
-Additional dependencies: Media3's OkHttp datasource, OkHttp and Okio retain their upstream Apache-2.0 licenses; JUnit 4 (EPL-1.0) and JSON-java (upstream license) are test-only dependencies. Resolve actual transitive versions and bundle upstream texts before distribution.
+## Dependencies
 
-Streaming builds use an external ARM runtime. Its binaries are excluded from Git; distribution remains subject to its applicable license. This project does not grant redistribution rights for that runtime. The small `com.pp.hls` Java declaration is an ABI interface, not a copy of native implementation code.
+- **AndroidX Media3** (ExoPlayer, HLS, DASH and UI): Apache License 2.0. Source: https://github.com/androidx/media
+- **Android Gradle Plugin and Android SDK tooling:** Retain their applicable upstream notices.
+- **Gradle wrapper/tooling:** Apache License 2.0. Source: https://github.com/gradle/gradle
+- **Media3 OkHttp datasource, OkHttp and Okio:** Retain their upstream Apache-2.0 licenses.
+- **AndroidX RecyclerView 1.4.0:** Apache License 2.0. Source: https://android.googlesource.com/platform/frameworks/support/+/androidx-main/recyclerview/
 
-Robolectric 4.16 and its test-only dependencies are used for simulated Android lifecycle regression tests; they are not packaged in the app. Robolectric is distributed under the MIT license. See https://github.com/robolectric/robolectric/blob/master/LICENSE.
+## Testing dependencies
 
-AndroidX Test Core/Runner/Ext JUnit and UI Automator are test-only Apache-2.0 dependencies. Device tests reference a public Media3 Big Buck Bunny fixture; neither the clip nor an alternative catalog is bundled with Zuno.
+The following dependencies are used for development and testing:
 
-AndroidX RecyclerView 1.4.0 is distributed under Apache License 2.0. Source: https://android.googlesource.com/platform/frameworks/support/+/androidx-main/recyclerview/
+- **JUnit 4:** EPL-1.0.
+- **JSON-java:** Subject to its applicable upstream license.
+- **Robolectric 4.16:** MIT License. Source: https://github.com/robolectric/robolectric/blob/master/LICENSE
+- **AndroidX Test Core, Runner, Ext JUnit and UI Automator:** Apache License 2.0.
+
+Robolectric and the listed testing dependencies are not intended to be packaged in the released application.
+
+Device tests reference a public Media3 Big Buck Bunny fixture. Neither the clip nor an alternative catalog is bundled with Zuno.
+
+## External streaming runtime
+
+Some Zuno builds use an external ARM streaming runtime.
+
+Its binaries are excluded from this Git repository, and redistribution is subject to its applicable license.
+
+Zuno's GPL-3.0 license does not independently grant redistribution rights for that external runtime.
+
+The small `com.pp.hls` Java declaration is an ABI interface and does not contain native implementation code.
+
+Compatibility between the external runtime's license and GPL-3.0 must be verified before distributing builds that combine them.
+
+## Distribution requirements
+
+Before distributing Zuno binaries:
+
+1. Generate an inventory of resolved direct and transitive dependencies.
+2. Include all required third-party copyright notices and license texts.
+3. Comply with GPL-3.0 source-code distribution requirements.
+4. Verify that external runtime components can legally be redistributed and combined with GPL-covered code.
+
+This file is a development inventory and is not yet
