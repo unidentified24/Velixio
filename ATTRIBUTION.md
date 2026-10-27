@@ -3,7 +3,7 @@
 **Project:** Zuno  
 **Original author:** unidentified24  
 **Original repository:** https://github.com/unidentified24/Zuno
-## Previous Project Name — Veyra
+## Previous Project Name - Veyra
 
 Zuno was originally developed under the working name **Veyra** before its public release.
 
