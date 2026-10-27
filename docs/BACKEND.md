@@ -1,6 +1,6 @@
 # Streaming connection contract
 
-`CatalogBackend` implements catalog access and stream resolution; `CombinedCatalog` builds Zuno's navigation and combines results while preserving source identities. The UI never uses raw server category names as navigation labels. Search covers every configured catalog, including titles outside the Home filters.
+`CatalogBackend` implements catalog access and stream resolution; `CombinedCatalog` builds Velixio's navigation and combines results while preserving source identities. The UI never uses raw server category names as navigation labels. Search covers every configured catalog, including titles outside the Home filters.
 
 Connections have separate in-memory sessions and installation IDs. Requests use form-encoded POST bodies, HTTPS, signed headers and the service's response envelope. The existing wire format is an interoperability requirement, not a recommended design for a new service.
 

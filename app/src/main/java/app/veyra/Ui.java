@@ -7,12 +7,11 @@ import android.graphics.drawable.*;
 import android.view.*;
 import android.widget.*;
 final class Ui {
-    static int BG=0xff0b1015, INK=0xfff4f6f7, MUTED=0xffa5adb5, ACCENT=0xffd5f582, SURFACE=0xff192129;
+    static int BG=0xff090d16, INK=0xfff4f6f7, MUTED=0xffa5adb5, ACCENT=0xffff795f, SURFACE=0xff171e2b;
     static void configure(Activity a){
         int theme=a.getSharedPreferences("settings",0).getInt("theme",0);
-        int[][] colors={{0xff0b1015,0xffd5f582,0xff192129},{0xff081419,0xff70ded1,0xff142a30},{0xff16100e,0xfff2bb83,0xff2b211d},{0xff000000,0xffeeeeee,0xff1b1b1b}};
-        if(theme<0||theme>=colors.length)theme=0;BG=colors[theme][0];ACCENT=colors[theme][1];SURFACE=colors[theme][2];
-        a.setTheme(new int[]{R.style.Theme_Zuno,R.style.Theme_Zuno_Ocean,R.style.Theme_Zuno_Ember,R.style.Theme_Zuno_Oled}[theme]);
+        int[][] colors=ThemePalette.COLORS;theme=ThemePalette.index(theme);BG=colors[theme][0];ACCENT=colors[theme][1];SURFACE=colors[theme][2];
+        a.setTheme(new int[]{R.style.Theme_Velixio,R.style.Theme_Velixio_Ocean,R.style.Theme_Velixio_Ember,R.style.Theme_Velixio_Oled,R.style.Theme_Velixio_Amethyst,R.style.Theme_Velixio_Forest,R.style.Theme_Velixio_Rosewood,R.style.Theme_Velixio_Glacier}[theme]);
         a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);a.getWindow().setBackgroundDrawable(new ColorDrawable(BG));
     }
     static int columns(Activity a){int width=a.getResources().getConfiguration().screenWidthDp;int card=a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?110:145;return Math.max(2,Math.min(8,(width-32)/card));}
@@ -33,20 +32,21 @@ final class Ui {
     }
     static Button button(Activity a,String title){return chip(a,title);}
     static Button primary(Activity a,String title){
-        Button b=control(a,title);b.setTextColor(BG);Drawable face=new InsetDrawable(shape(a,ACCENT,12),0,dp(a,5),0,dp(a,5));
+        Button b=control(a,title);b.setTextColor(BG);Drawable face=new InsetDrawable(shape(a,ACCENT,24),0,dp(a,5),0,dp(a,5));
         b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x33000000),face,null));b.setPadding(dp(a,14),dp(a,6),dp(a,14),dp(a,6));return b;
     }
     static Button chip(Activity a,String title){
         Button b=control(a,title);b.setTextColor(new ColorStateList(new int[][]{new int[]{android.R.attr.state_selected},new int[]{}},new int[]{ACCENT,INK}));
-        StateListDrawable states=new StateListDrawable();GradientDrawable selected=shape(a,SURFACE,12);selected.setStroke(dp(a,1),ACCENT);
-        states.addState(new int[]{android.R.attr.state_selected},selected);states.addState(new int[]{},shape(a,SURFACE,12));
+        StateListDrawable states=new StateListDrawable();GradientDrawable selected=shape(a,SURFACE,24);selected.setStroke(dp(a,1),ACCENT);
+        states.addState(new int[]{android.R.attr.state_selected},selected);states.addState(new int[]{},shape(a,SURFACE,24));
         b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22ffffff),new InsetDrawable(states,0,dp(a,6),0,dp(a,6)),null));b.setPadding(dp(a,14),dp(a,6),dp(a,14),dp(a,6));return b;
     }
+    static Button tab(Activity a,String title){Button b=quiet(a,title);b.setTextSize(14);b.setTextColor(new ColorStateList(new int[][]{new int[]{android.R.attr.state_selected},new int[]{}},new int[]{INK,MUTED}));return b;}
     static Button quiet(Activity a,String title){
         Button b=control(a,title);b.setTextColor(INK);b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22ffffff),null,shape(a,Color.WHITE,8)));b.setPadding(dp(a,14),dp(a,6),dp(a,14),dp(a,6));return b;
     }
     static LinearLayout card(Activity a){LinearLayout card=column(a);card.setBackground(shape(a,SURFACE,14));card.setClipToOutline(true);int p=dp(a,12);card.setPadding(p,p,p,p);return card;}
-    static void insets(Activity a,View view,int padding){int maxWidth=a instanceof SettingsActivity?760:1100;int p=Math.max(dp(a,padding),(a.getResources().getDisplayMetrics().widthPixels-dp(a,maxWidth))/2);view.setOnApplyWindowInsetsListener((v,insets)->{
+    static void insets(Activity a,View view,int padding){int maxWidth=(a instanceof SettingsActivity||a instanceof UpdatesActivity)?760:1100;int p=Math.max(dp(a,padding),(a.getResources().getDisplayMetrics().widthPixels-dp(a,maxWidth))/2);view.setOnApplyWindowInsetsListener((v,insets)->{
         v.setPadding(p+insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),p+insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;
     });view.requestApplyInsets();}
 }

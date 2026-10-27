@@ -68,19 +68,27 @@ public final class PlayerActivity extends Activity {
     }
     private void createPlayerUi() {
         root=new FrameLayout(this);root.setBackgroundColor(android.graphics.Color.BLACK);
-        view=new PlayerView(this);view.setShowSubtitleButton(true);view.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);
+        view=(PlayerView)getLayoutInflater().inflate(R.layout.velixio_player,root,false);view.setShowSubtitleButton(false);view.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);
         view.setContentDescription("Video player");view.setControllerShowTimeoutMs(3000);view.setControllerHideOnTouch(true);
+        androidx.media3.ui.DefaultTimeBar timeline=view.findViewById(androidx.media3.ui.R.id.exo_progress);if(timeline!=null){timeline.setPlayedColor(Ui.ACCENT);timeline.setScrubberColor(Ui.ACCENT);}
         applySizing();
         root.addView(view,new FrameLayout.LayoutParams(-1,-1));
         header=Ui.column(this);header.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xcc000000,0x00000000}));
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);
         Button back=Ui.quiet(this,"‹");back.setContentDescription("Back to title");back.setOnClickListener(v->finish());bar.addView(back,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
         titleView=Ui.text(this,request.title,14,Ui.INK);titleView.setMaxLines(1);titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);bar.addView(titleView,new LinearLayout.LayoutParams(0,-2,1));
-        sourceButton=Ui.chip(this,sourceName());sourceButton.setContentDescription("Change Original, Dub or available version");sourceButton.setOnClickListener(v->chooseSource());if(offlineId==null)bar.addView(sourceButton,new LinearLayout.LayoutParams(Ui.dp(this,92),Ui.dp(this,48)));
+        sourceButton=Ui.chip(this,sourceName());sourceButton.setContentDescription("Change Original, Dub or available version");sourceButton.setOnClickListener(v->chooseSource());
         Button rotate=Ui.icon(this,"rotate","Rotate screen");rotate.setOnClickListener(v->setRequestedOrientation(getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE));bar.addView(rotate,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
         miniButton=Ui.icon(this,"pip","Picture in picture · floating mini player");miniButton.setOnClickListener(v->enterMiniPlayer());miniButton.setVisibility(supportsPip()?View.VISIBLE:View.GONE);bar.addView(miniButton,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
         Button settings=Ui.icon(this,"options","Player controls");settings.setContentDescription("Playback options");settings.setOnClickListener(v->playbackOptions());bar.addView(settings,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
         header.addView(bar);root.addView(header,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));
+        LinearLayout tools=view.findViewById(R.id.velixio_player_tools);
+        if(offlineId==null){sourceButton.setText(sourceName()+" ▾");tools.addView(sourceButton,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));}
+        Button quality=Ui.quiet(this,"Quality");quality.setOnClickListener(v->chooseTracks(C.TRACK_TYPE_VIDEO));tools.addView(quality);
+        Button size=Ui.quiet(this,new String[]{"Fit","Fill","Stretch"}[sizing]);size.setContentDescription("Picture size: Fit, Fill or Stretch");size.setOnClickListener(v->{sizing=(sizing+1)%3;applySizing();size.setText(new String[]{"Fit","Fill","Stretch"}[sizing]);});tools.addView(size);
+        Button captions=Ui.quiet(this,"Captions");captions.setOnClickListener(v->{if(player!=null&&player.getCurrentTracks().isTypeSupported(C.TRACK_TYPE_TEXT))chooseTracks(C.TRACK_TYPE_TEXT);else Toast.makeText(this,"No captions are available for this version",Toast.LENGTH_SHORT).show();});tools.addView(captions);
+        if(getIntent().hasExtra("vodId")){Button episodes=Ui.quiet(this,"Episodes");episodes.setOnClickListener(v->showEpisodes());tools.addView(episodes);}
+
         footer=Ui.column(this);footer.setBackgroundColor(0x99000000);status=Ui.text(this,"",13,Ui.INK);status.setMaxLines(3);footer.addView(status);
         FrameLayout.LayoutParams notice=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);notice.topMargin=Ui.dp(this,56);root.addView(footer,notice);
         status.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence t,int start,int count,int after){} public void onTextChanged(CharSequence t,int start,int before,int count){updateChrome();}public void afterTextChanged(android.text.Editable t){}});
@@ -100,12 +108,19 @@ public final class PlayerActivity extends Activity {
     private void applySizing(){int[] modes={androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL};sizing=Math.max(0,Math.min(2,sizing));view.setResizeMode(modes[sizing]);cropVideo=sizing==1;}
     private void playbackOptions(){
         view.showController();List<String> labels=new ArrayList<>();List<Runnable> actions=new ArrayList<>();
-        labels.add("Picture size · "+new String[]{"Fit","Fill / crop","Stretch"}[sizing]);actions.add(()->ActionSheet.show(this,"Picture size",new String[]{"Fit · complete picture","Fill · crop edges","Stretch · fill without bars"},index->{sizing=index;applySizing();}));
+        labels.add("Speed · "+speed+"×");actions.add(()->ActionSheet.show(this,"Playback speed",new String[]{"0.75×","1× · Normal","1.25×","1.5×","2×"},index->{speed=new float[]{.75f,1f,1.25f,1.5f,2f}[index];if(player!=null)player.setPlaybackSpeed(speed);}));
         labels.add("Video quality");actions.add(()->chooseTracks(C.TRACK_TYPE_VIDEO));
         if(player!=null&&player.getCurrentTracks().isTypeSupported(C.TRACK_TYPE_TEXT)){labels.add("Captions");actions.add(()->chooseTracks(C.TRACK_TYPE_TEXT));}
-        if(offlineId==null){labels.add("Download this episode");actions.add(()->DownloadWorker.start(this,getIntent().getStringExtra("playback")));}
+        if(offlineId==null){labels.add("Download this episode");actions.add(()->DownloadWorker.start(this,getIntent().getStringExtra("playback"),getIntent().getStringExtra("poster")));}
         if(getIntent().hasExtra("vodId")){labels.add("Episodes & connection");actions.add(()->ActionSheet.show(this,"Episode controls",new String[]{"Previous episode","Next episode","Reconnect current stream"},index->{if(index<2)resolveSource(selectedType(),index==0?-1:1);else refreshSource(selectedType());}));}
         ActionSheet.show(this,"Watching controls",labels.toArray(new String[0]),index->actions.get(index).run());
+    }
+    private void showEpisodes(){
+        if(resolving)return;resolving=true;status.setText("Loading episodes…");
+        resolver.execute(()->{try{JSONObject detail=CatalogBackend.get(this,getIntent().getStringExtra("provider")).detail(getIntent().getStringExtra("vodId"),selectedType(),getIntent().getStringExtra("kind"));JSONArray episodes=detail.getJSONArray("vod_collection");String[] names=new String[episodes.length()];for(int i=0;i<names.length;i++){String name=episodes.getJSONObject(i).optString("title");names[i]=name.isEmpty()||name.matches("[0-9. ]+")?"Episode "+(i+1):name;}runOnUiThread(()->{if(isFinishing()||isDestroyed())return;resolving=false;status.setText("");ActionSheet.show(this,"Episodes",names,index->{try{openListedEpisode(detail,episodes.getJSONObject(index));}catch(Exception e){status.setText("This episode could not be opened");}});});}catch(Exception e){runOnUiThread(()->{resolving=false;status.setText("Episodes could not load. Try again.");});}});
+    }
+    private void openListedEpisode(JSONObject detail,JSONObject episode){
+        if(resolving)return;resolving=true;status.setText("Opening episode…");String provider=getIntent().getStringExtra("provider"),type=selectedType();resolver.execute(()->{try{String json=CatalogBackend.get(this,provider).playbackJson(detail,episode,sourceName());PlaybackRequest replacement=PlaybackJson.parseInternal(json);String key=EpisodeSelection.key(episode);String variants=detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString();runOnUiThread(()->completeResolution(replacement,json,type,key,variants,1));}catch(Exception e){runOnUiThread(()->{resolving=false;status.setText("This episode could not open. Current playback is preserved.");});}});
     }
     private void updateChrome(){
         if(header==null||footer==null)return;
@@ -246,7 +261,7 @@ public final class PlayerActivity extends Activity {
         player.setTrackSelectionParameters(trackPreferences);
         player.setMediaItem(new MediaItem.Builder().setMediaId(request.contentId+":"+source.id).setUri(source.url).setMimeType(source.mimeType).setSubtitleConfigurations(captions).build());
         view.setPlayer(player); player.seekTo(position); player.setPlaybackSpeed(speed); player.prepare(); player.setPlayWhenReady(playWhenReady);
-        session=new MediaSession(this,"ZunoPlayer");
+        session=new MediaSession(this,"VelixioPlayer");
         session.setCallback(new MediaSession.Callback() {
             @Override public void onPlay() { if(player!=null)player.play(); }
             @Override public void onPause() { if(player!=null)player.pause(); }
@@ -279,7 +294,7 @@ public final class PlayerActivity extends Activity {
     }
     private void enterMiniPlayer() {
         if(Build.VERSION.SDK_INT<26 || !supportsPip() || player==null)return;
-        try { if(!enterPictureInPictureMode(pipParams()))Toast.makeText(this,"Allow picture-in-picture for Zuno in Android settings",Toast.LENGTH_LONG).show(); }
+        try { if(!enterPictureInPictureMode(pipParams()))Toast.makeText(this,"Allow picture-in-picture for Velixio in Android settings",Toast.LENGTH_LONG).show(); }
         catch(IllegalStateException|IllegalArgumentException e) { Toast.makeText(this,"Picture-in-picture is unavailable on this device",Toast.LENGTH_LONG).show(); }
     }
     @Override protected void onUserLeaveHint() { super.onUserLeaveHint(); if(Build.VERSION.SDK_INT<31 && canAutoPip())enterMiniPlayer(); }

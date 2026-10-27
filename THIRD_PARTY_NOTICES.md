@@ -1,6 +1,6 @@
 # Third-party software
 
-Zuno is licensed under the **GNU General Public License version 3.0 (GPL-3.0)**.
+Velixio is licensed under the **GNU General Public License version 3.0 (GPL-3.0)**.
 
 See the `LICENSE` file in the repository for the full license text.
 
@@ -23,15 +23,15 @@ The following dependencies are used for development and testing:
 
 Robolectric and the listed testing dependencies are not intended to be packaged in the released application.
 
-Device tests reference a public Media3 Big Buck Bunny fixture. Neither the clip nor an alternative catalog is bundled with Zuno.
+Device tests reference a public Media3 Big Buck Bunny fixture. Neither the clip nor an alternative catalog is bundled with Velixio.
 
 ## External streaming runtime
 
-Some Zuno builds use an external ARM streaming runtime.
+Some Velixio builds use an external ARM streaming runtime.
 
 Its binaries are excluded from this Git repository, and redistribution is subject to its applicable license.
 
-Zuno's GPL-3.0 license does not independently grant redistribution rights for that external runtime.
+Velixio's GPL-3.0 license does not independently grant redistribution rights for that external runtime.
 
 The small `com.pp.hls` Java declaration is an ABI interface and does not contain native implementation code.
 
@@ -39,11 +39,11 @@ Compatibility between the external runtime's license and GPL-3.0 must be verifie
 
 ## Distribution requirements
 
-Before distributing Zuno binaries:
+Before distributing Velixio binaries:
 
 1. Generate an inventory of resolved direct and transitive dependencies.
 2. Include all required third-party copyright notices and license texts.
 3. Comply with GPL-3.0 source-code distribution requirements.
 4. Verify that external runtime components can legally be redistributed and combined with GPL-covered code.
 
-This file is a development inventory and is not yet
+This file is a development inventory, not a completed distribution audit.

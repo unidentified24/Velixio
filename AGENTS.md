@@ -1,4 +1,4 @@
-# Working on Zuno
+# Working on Velixio
 
 - Use JDK 17, Android SDK 35 and Gradle 8.9.
 - Keep catalog adapters separate from playback and interface code. Preserve exact source IDs, signed URLs, required headers, stream quality and authentication.

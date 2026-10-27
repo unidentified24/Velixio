@@ -14,6 +14,8 @@ final class PosterLoader {
     private static final LruCache<String,Bitmap> cache=new LruCache<String,Bitmap>(16*1024*1024){
         protected int sizeOf(String key,Bitmap value){return value.getAllocationByteCount();}
     };
+    static void saveAvailableArtwork(android.content.Context context,String id,String url){Bitmap image=url==null?null:cache.get(url);if(image==null)return;try{File dir=new File(context.getFilesDir(),"download-art");dir.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(dir,OfflineStore.checked(id)+".png"))){image.compress(Bitmap.CompressFormat.PNG,100,out);}}catch(IOException ignored){}}
+    void loadOffline(Activity activity,ImageView target,String id){String key="offline:"+OfflineStore.checked(id);if(key.equals(target.getTag())&&target.getDrawable()!=null)return;target.setTag(key);target.setImageResource(R.drawable.velixio_logo);WeakReference<Activity> owner=new WeakReference<>(activity);WeakReference<ImageView> image=new WeakReference<>(target);workers.execute(()->{Bitmap b=BitmapFactory.decodeFile(new File(activity.getFilesDir(),"download-art/"+id+".png").getPath());if(b!=null)deliver(owner,image,key,b);});}
     private volatile boolean closed;
     void load(Activity activity,ImageView target,String url) {
         if(url.equals(target.getTag())&&target.getDrawable()!=null)return;

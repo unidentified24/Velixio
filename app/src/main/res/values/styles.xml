@@ -1,6 +1,10 @@
 <resources>
-<style name="Theme.Zuno" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorBackground">#0B1015</item><item name="android:colorControlNormal">#AAA5BC</item><item name="android:windowMinWidthMajor">90%</item><item name="android:windowMinWidthMinor">90%</item><item name="android:colorAccent">#D5F582</item><item name="android:windowLightStatusBar">false</item><item name="android:statusBarColor">#0B1015</item><item name="android:navigationBarColor">#0B1015</item><item name="android:windowBackground">#0B1015</item></style>
-<style name="Theme.Zuno.Ocean" parent="Theme.Zuno"><item name="android:colorAccent">#70DED1</item><item name="android:colorBackground">#08151D</item></style>
-<style name="Theme.Zuno.Ember" parent="Theme.Zuno"><item name="android:colorAccent">#F2BB83</item><item name="android:colorBackground">#19110D</item></style>
-<style name="Theme.Zuno.Oled" parent="Theme.Zuno"><item name="android:colorAccent">#EEEEEE</item><item name="android:colorBackground">#000000</item></style>
+<style name="Theme.Velixio" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorBackground">#090D16</item><item name="android:colorControlNormal">#AAA5BC</item><item name="android:windowMinWidthMajor">90%</item><item name="android:windowMinWidthMinor">90%</item><item name="android:colorAccent">#FF795F</item><item name="android:windowLightStatusBar">false</item><item name="android:statusBarColor">#090D16</item><item name="android:navigationBarColor">#090D16</item><item name="android:windowBackground">#090D16</item></style>
+<style name="Theme.Velixio.Ocean" parent="Theme.Velixio"><item name="android:colorAccent">#70DED1</item><item name="android:colorBackground">#08151D</item></style>
+<style name="Theme.Velixio.Ember" parent="Theme.Velixio"><item name="android:colorAccent">#F2BB83</item><item name="android:colorBackground">#19110D</item></style>
+<style name="Theme.Velixio.Oled" parent="Theme.Velixio"><item name="android:colorAccent">#EEEEEE</item><item name="android:colorBackground">#000000</item></style>
+<style name="Theme.Velixio.Amethyst" parent="Theme.Velixio"><item name="android:colorAccent">#C5A7FF</item><item name="android:colorBackground">#100C1C</item></style>
+<style name="Theme.Velixio.Forest" parent="Theme.Velixio"><item name="android:colorAccent">#A5D8A2</item><item name="android:colorBackground">#091510</item></style>
+<style name="Theme.Velixio.Rosewood" parent="Theme.Velixio"><item name="android:colorAccent">#FFAAC6</item><item name="android:colorBackground">#180C12</item></style>
+<style name="Theme.Velixio.Glacier" parent="Theme.Velixio"><item name="android:colorAccent">#A4D9FF</item><item name="android:colorBackground">#0B1421</item></style>
 </resources>

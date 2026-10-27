@@ -19,10 +19,11 @@ final class NavItem extends LinearLayout {
                 if(index==0){p.moveTo(3,13);p.lineTo(14,4);p.lineTo(25,13);p.moveTo(6,11);p.lineTo(6,24);p.lineTo(11,24);p.lineTo(11,17);p.lineTo(17,17);p.lineTo(17,24);p.lineTo(22,24);p.lineTo(22,11);c.drawPath(p,paint);}
                 else if(index==1){c.drawCircle(12,12,8,paint);c.drawLine(18,18,25,25,paint);}
                 else if(index==2){c.drawCircle(14,14,10,paint);p.moveTo(11,8);p.lineTo(19,14);p.lineTo(11,20);p.close();c.drawPath(p,paint);}
+                else if(index==4){c.drawLine(14,3,14,18,paint);p.moveTo(7,12);p.lineTo(14,19);p.lineTo(21,12);p.moveTo(4,21);p.lineTo(4,25);p.lineTo(24,25);p.lineTo(24,21);c.drawPath(p,paint);}
                 else{p.moveTo(6,4);p.lineTo(22,4);p.lineTo(22,25);p.lineTo(14,19);p.lineTo(6,25);p.close();c.drawPath(p,paint);}c.restore();
             }
         };addView(icon,new LayoutParams(Ui.dp(activity,24),Ui.dp(activity,24)));
-        label=Ui.text(activity,name,11,color);label.setPadding(0,Ui.dp(activity,4),0,0);label.setGravity(Gravity.CENTER);addView(label);setActive(index==0);
+        label=Ui.text(activity,name,10,color);label.setPadding(0,Ui.dp(activity,4),0,0);label.setGravity(Gravity.CENTER);addView(label);setActive(index==0);
     }
-    void setActive(boolean selected){setSelected(selected);color=selected?Ui.ACCENT:Ui.MUTED;label.setTextColor(color);icon.invalidate();}
+    void setActive(boolean selected){setSelected(selected);color=selected?Ui.ACCENT:Ui.MUTED;label.setTextColor(color);label.setTypeface(null,selected?Typeface.BOLD:Typeface.NORMAL);setAlpha(selected?1f:.72f);icon.invalidate();}
 }

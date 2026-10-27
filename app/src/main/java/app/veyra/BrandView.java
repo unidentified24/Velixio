@@ -1,4 +1,8 @@
 package app.veyra;
 import android.content.Context;import android.graphics.*;import android.view.View;
-/** Film-frame play mark and bespoke rounded lowercase lettering. */
-final class BrandView extends View {private final Paint p=new Paint(3);private final Path path=new Path();BrandView(Context c){super(c);setContentDescription("Zuno");setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);}protected void onDraw(Canvas c){super.onDraw(c);float scale=Math.min(getWidth()/146f,getHeight()/44f);c.save();c.translate(0,(getHeight()-32*scale)/2);c.scale(scale,scale);p.setColor(Ui.ACCENT);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(2.5f);c.drawRoundRect(1,1,34,31,7,7,p);p.setStyle(Paint.Style.FILL);path.reset();path.moveTo(13,8);path.lineTo(25,16);path.lineTo(13,24);path.close();c.drawPath(path,p);for(int x:new int[]{8,16,24}){c.drawCircle(x,3,1,p);c.drawCircle(x,29,1,p);}p.setColor(Ui.INK);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(3.5f);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);path.reset();path.moveTo(48,11);path.lineTo(65,11);path.lineTo(48,27);path.lineTo(65,27);path.moveTo(75,11);path.lineTo(75,21);path.cubicTo(75,31,92,31,92,21);path.lineTo(92,11);path.moveTo(102,27);path.lineTo(102,11);path.moveTo(102,18);path.cubicTo(102,7,119,7,119,18);path.lineTo(119,27);c.drawPath(path,p);c.drawOval(129,10,145,28,p);c.restore();}}
+/** Generated ribbon mark, paired with a restrained wordmark. */
+final class BrandView extends View {
+ private final Paint p=new Paint(3);private final Bitmap logo;private final RectF bounds=new RectF();
+ BrandView(Context c){super(c);logo=BitmapFactory.decodeResource(c.getResources(),R.drawable.velixio_logo);setContentDescription("Velixio");setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);}
+ protected void onDraw(Canvas c){super.onDraw(c);float s=Math.min(getWidth()/176f,getHeight()/48f);c.save();c.scale(s,s);bounds.set(0,0,48,48);c.drawBitmap(logo,null,bounds,p);p.setColor(Ui.INK);p.setTypeface(Typeface.create("sans-serif-black",Typeface.BOLD));p.setTextSize(28);c.drawText("velixio",53,32,p);c.restore();}
+}

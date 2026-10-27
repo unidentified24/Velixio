@@ -3,12 +3,12 @@ import android.content.*;
 import org.json.*;
 import java.util.*;
 /** Portable, allowlisted metadata. No sessions, server profiles or media URLs. */
-final class ZunoData {
+final class VelixioData {
  static final int LIMIT=2*1024*1024;
  private static final String[] FAVORITE={"id","vod_name","vod_year","vod_douban_score","_provider","_kind"};
  private static final String[] HISTORY={"provider","kind","id","collection","audioType","title"};
  static JSONObject export(Context c)throws Exception{
-  JSONObject out=new JSONObject().put("format","zunodata").put("version",1).put("exportedAt",System.currentTimeMillis());
+  JSONObject out=new JSONObject().put("format","velixiodata").put("version",1).put("exportedAt",System.currentTimeMillis());
   JSONArray saved=new JSONArray(),history=new JSONArray();JSONObject resume=new JSONObject(),settings=new JSONObject();
   for(JSONObject o:LibraryStore.list(c))saved.put(cleanRecord(o,false));
   for(Object v:c.getSharedPreferences("watch-history",0).getAll().values())history.put(cleanRecord(new JSONObject((String)v),true));
@@ -31,13 +31,13 @@ final class ZunoData {
  static JSONObject validate(String text)throws Exception{
   if(text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>LIMIT)throw new Exception("File too large");
   int depth=0;boolean quoted=false,escaped=false;for(int i=0;i<text.length();i++){char ch=text.charAt(i);if(quoted){if(escaped)escaped=false;else if(ch==92)escaped=true;else if(ch==34)quoted=false;}else if(ch==34)quoted=true;else if(ch=='{'||ch=='['){if(++depth>12)throw new Exception("Backup nesting too deep");}else if(ch=='}'||ch==']')depth--;}
-  JSONObject raw=new JSONObject(text);if(!"zunodata".equals(raw.optString("format"))||number(raw,"version",1)!=1)throw new Exception("Unsupported backup");
+  JSONObject raw=new JSONObject(text);if(!("velixiodata".equals(raw.optString("format"))||"zunodata".equals(raw.optString("format")))||number(raw,"version",1)!=1)throw new Exception("Unsupported backup");
   JSONArray saved=raw.getJSONArray("favorites"),history=raw.getJSONArray("history");JSONObject positions=raw.getJSONObject("resume"),prefs=raw.getJSONObject("settings");
   if(saved.length()>1000||history.length()>100||positions.length()>200)throw new Exception("Too many records");
   JSONObject result=new JSONObject(),resume=new JSONObject(),settings=new JSONObject();JSONArray s=new JSONArray(),h=new JSONArray();for(int i=0;i<saved.length();i++)s.put(cleanRecord(saved.getJSONObject(i),false));for(int i=0;i<history.length();i++)h.put(cleanRecord(history.getJSONObject(i),true));
   Iterator<String> keys=positions.keys();while(keys.hasNext()){String key=keys.next();if(!validResume(key))throw new Exception("Invalid playback position");resume.put(key,number(positions,key,2592000000L));}
   for(String key:new String[]{"compactPosters","autoplay","rememberSpeed"})if(prefs.has(key)){if(!(prefs.get(key) instanceof Boolean))throw new Exception("Invalid setting");settings.put(key,prefs.getBoolean(key));}
-  int theme=(int)number(prefs,"theme",3);settings.put("theme",theme);if(prefs.has("qualityHeight")&&!(prefs.get("qualityHeight") instanceof Number))throw new Exception("Invalid quality");int quality=prefs.optInt("qualityHeight",0);if(!(quality==-1||quality==0||quality==480||quality==720||quality==1080))throw new Exception("Invalid quality");settings.put("qualityHeight",quality);
+  int theme=(int)number(prefs,"theme",ThemePalette.NAMES.length-1);settings.put("theme",theme);if(prefs.has("qualityHeight")&&!(prefs.get("qualityHeight") instanceof Number))throw new Exception("Invalid quality");int quality=prefs.optInt("qualityHeight",0);if(!(quality==-1||quality==0||quality==480||quality==720||quality==1080))throw new Exception("Invalid quality");settings.put("qualityHeight",quality);
   if(prefs.has("speed")&&!(prefs.get("speed") instanceof Number))throw new Exception("Invalid speed");double speed=prefs.optDouble("speed",1);if(!Double.isFinite(speed)||speed<0.25||speed>3)throw new Exception("Invalid speed");settings.put("speed",speed);
   return result.put("favorites",s).put("history",h).put("resume",resume).put("settings",settings);
  }

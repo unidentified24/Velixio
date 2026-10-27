@@ -13,7 +13,7 @@ public final class VeyraApplication extends Application implements Application.A
     public void onActivityStarted(Activity activity){visible++;main.removeCallbacks(idle);}
     public void onActivityStopped(Activity activity){visible=Math.max(0,visible-1);if(visible==0)main.postDelayed(idle,30000);}
     public void onActivityCreated(Activity activity,Bundle state){}
-    public void onActivityResumed(Activity activity){}
+    public void onActivityResumed(Activity activity){if(activity instanceof MainActivity){AppUpdates.maybeCheck(activity);AutoBackup.schedule(this);AutoBackup.maybeRun(this);}}
     public void onActivityPaused(Activity activity){}
     public void onActivitySaveInstanceState(Activity activity,Bundle state){}
     public void onActivityDestroyed(Activity activity){}
