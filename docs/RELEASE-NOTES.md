@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.0.1-rc2
+- Add Sunset (aubergine and peach) and Midnight gold (ink blue and champagne).
+- Preserve existing theme selections and include both new palettes in backup and restore.
+- Increase version code to 18 for in-app update installation.
+
+
 ## 1.0.1-rc1
 - Rename the app, repository, resources and backup exports to Velixio; retain installation identity, stored collections and earlier backup imports.
 - Introduce a generated V/play logo with an adaptive launcher icon and a wordmark sized for the longer name.

@@ -14,7 +14,7 @@ Choose the newest release candidate for testing; older APKs are retained as hist
 - Discover rotating featured picks and rating- and release-year-based collections.
 - Save titles to My list and resume from Continue watching.
 - Watch with quality, source, caption and picture-size controls, episode autoplay and picture-in-picture.
-- Choose from eight themes, including Amethyst, Forest, Rosewood and Glacier, with comfortable or compact poster layouts.
+- Choose from ten themes, including Amethyst, Forest, Rosewood and Glacier, with comfortable or compact poster layouts.
 - Export and restore saved titles, viewing history and preferences using `.velixiodata` backups.
 - Manage appearance, playback and data through dedicated Settings pages.
 - Download eligible streams and play completed copies offline; see [offline downloads and compatibility](docs/OFFLINE.md).
@@ -23,7 +23,7 @@ Choose the newest release candidate for testing; older APKs are retained as hist
 - Schedule daily backups to a folder you choose, retaining seven copies.
 
 ## Release track
-1.0.1-rc1 introduces the Velixio identity, in-app updates and automatic backups. Device acceptance is pending.
+1.0.1-rc2 introduces the Velixio identity, in-app updates and automatic backups. Device acceptance is pending.
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.9:

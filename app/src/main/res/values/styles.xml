@@ -7,4 +7,6 @@
 <style name="Theme.Velixio.Forest" parent="Theme.Velixio"><item name="android:colorAccent">#A5D8A2</item><item name="android:colorBackground">#091510</item></style>
 <style name="Theme.Velixio.Rosewood" parent="Theme.Velixio"><item name="android:colorAccent">#FFAAC6</item><item name="android:colorBackground">#180C12</item></style>
 <style name="Theme.Velixio.Glacier" parent="Theme.Velixio"><item name="android:colorAccent">#A4D9FF</item><item name="android:colorBackground">#0B1421</item></style>
+<style name="Theme.Velixio.Sunset" parent="Theme.Velixio"><item name="android:colorAccent">#FFB38A</item><item name="android:colorBackground">#1A101B</item></style>
+<style name="Theme.Velixio.MidnightGold" parent="Theme.Velixio"><item name="android:colorAccent">#E7CE8A</item><item name="android:colorBackground">#0B101C</item></style>
 </resources>

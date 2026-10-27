@@ -11,7 +11,7 @@ final class Ui {
     static void configure(Activity a){
         int theme=a.getSharedPreferences("settings",0).getInt("theme",0);
         int[][] colors=ThemePalette.COLORS;theme=ThemePalette.index(theme);BG=colors[theme][0];ACCENT=colors[theme][1];SURFACE=colors[theme][2];
-        a.setTheme(new int[]{R.style.Theme_Velixio,R.style.Theme_Velixio_Ocean,R.style.Theme_Velixio_Ember,R.style.Theme_Velixio_Oled,R.style.Theme_Velixio_Amethyst,R.style.Theme_Velixio_Forest,R.style.Theme_Velixio_Rosewood,R.style.Theme_Velixio_Glacier}[theme]);
+        a.setTheme(new int[]{R.style.Theme_Velixio,R.style.Theme_Velixio_Ocean,R.style.Theme_Velixio_Ember,R.style.Theme_Velixio_Oled,R.style.Theme_Velixio_Amethyst,R.style.Theme_Velixio_Forest,R.style.Theme_Velixio_Rosewood,R.style.Theme_Velixio_Glacier,R.style.Theme_Velixio_Sunset,R.style.Theme_Velixio_MidnightGold}[theme]);
         a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);a.getWindow().setBackgroundDrawable(new ColorDrawable(BG));
     }
     static int columns(Activity a){int width=a.getResources().getConfiguration().screenWidthDp;int card=a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?110:145;return Math.max(2,Math.min(8,(width-32)/card));}
