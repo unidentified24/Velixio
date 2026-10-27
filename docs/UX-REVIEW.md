@@ -16,3 +16,11 @@ Check readable contrast, comfortable touch targets, enlarged fonts, small and ta
 Poster bitmaps share a bounded 16 MiB memory cache across screen recreation. Rebinding an already displayed poster keeps its drawable, and pending artwork work is capped at 96 jobs with stale queued work discarded first. Home shelves reuse their adapters and retain horizontal scroll positions. Recently visited catalog pages use a bounded two-minute in-memory cache, including expanded Home results and partial-result notices.
 
 These changes remove redundant work; actual frame timing and perceived smoothness still require device measurement.
+
+
+## 0.10.0 redesign
+The brand uses a film-frame/play mark with rounded lowercase lettering. The navigation header uses a three-line icon; Continue and My list are separate destinations. Episode cards expose Watch and Save actions, and synopsis expansion stays inside its About card. Initial loading has visible placeholders while the catalog responds; this does not eliminate server latency.
+
+Player controls include a visible version selector, rotation and picture-in-picture icons. Styled bottom panels replace platform list dialogs. Fit, Fill/crop and Stretch are explicit choices. The redundant audio-language menu is removed; service-defined Original/Sub/Dub labels remain intact. Available alternate catalog connections can be selected from the player when a matching edition identity is known. Season changes discard stale connection identities. A buffering spinner appears only after 800 ms, avoiding flashes during short seeks.
+
+Home labels ratings as catalog-supplied, omits the specifically disliked Baddies franchise where other recommendations exist, and supports long-press hide preferences. Metadata quality and subjective recommendation quality still require user review; no external verified rating source is claimed.

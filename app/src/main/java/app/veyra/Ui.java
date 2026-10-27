@@ -7,16 +7,17 @@ import android.graphics.drawable.*;
 import android.view.*;
 import android.widget.*;
 final class Ui {
-    static int BG=0xff100e19, INK=0xfff5f2ff, MUTED=0xffaaa5bc, ACCENT=0xffbc9cff, SURFACE=0xff211c30;
+    static int BG=0xff0b1015, INK=0xfff4f6f7, MUTED=0xffa5adb5, ACCENT=0xffd5f582, SURFACE=0xff192129;
     static void configure(Activity a){
         int theme=a.getSharedPreferences("settings",0).getInt("theme",0);
-        int[][] colors={{0xff100e19,0xffbc9cff,0xff211c30},{0xff08151d,0xff64d9f4,0xff142a37},{0xff19110d,0xffffb582,0xff302117},{0xff000000,0xffeeeeee,0xff1b1b1b}};
+        int[][] colors={{0xff0b1015,0xffd5f582,0xff192129},{0xff081419,0xff70ded1,0xff142a30},{0xff16100e,0xfff2bb83,0xff2b211d},{0xff000000,0xffeeeeee,0xff1b1b1b}};
         if(theme<0||theme>=colors.length)theme=0;BG=colors[theme][0];ACCENT=colors[theme][1];SURFACE=colors[theme][2];
         a.setTheme(new int[]{R.style.Theme_Zuno,R.style.Theme_Zuno_Ocean,R.style.Theme_Zuno_Ember,R.style.Theme_Zuno_Oled}[theme]);
         a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);a.getWindow().setBackgroundDrawable(new ColorDrawable(BG));
     }
-    static int columns(Activity a){return a.getResources().getConfiguration().screenWidthDp>=600?5:a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?3:2;}
+    static int columns(Activity a){int width=a.getResources().getConfiguration().screenWidthDp;int card=a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?110:145;return Math.max(2,Math.min(8,(width-32)/card));}
     static int posterWidth(Activity a){return a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?112:136;}
+    static Button icon(Activity a,String kind,String description){Button b=quiet(a,"");Glyph icon=new Glyph(kind);icon.setBounds(0,0,dp(a,24),dp(a,24));b.setCompoundDrawables(null,icon,null,null);b.setGravity(Gravity.CENTER);b.setPadding(dp(a,12),dp(a,12),dp(a,12),dp(a,12));b.setContentDescription(description);if(android.os.Build.VERSION.SDK_INT>=26)b.setTooltipText(description);return b;}
     static int dp(Activity a,int value){return Math.round(value*a.getResources().getDisplayMetrics().density);}
     static LinearLayout column(Activity a){LinearLayout v=new LinearLayout(a);v.setOrientation(LinearLayout.VERTICAL);v.setBackgroundColor(BG);return v;}
     static TextView text(Activity a,String value,int size,int color){
@@ -45,7 +46,7 @@ final class Ui {
         Button b=control(a,title);b.setTextColor(INK);b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22ffffff),null,shape(a,Color.WHITE,8)));b.setPadding(dp(a,14),dp(a,6),dp(a,14),dp(a,6));return b;
     }
     static LinearLayout card(Activity a){LinearLayout card=column(a);card.setBackground(shape(a,SURFACE,14));card.setClipToOutline(true);int p=dp(a,12);card.setPadding(p,p,p,p);return card;}
-    static void insets(Activity a,View view,int padding){int p=dp(a,padding);view.setOnApplyWindowInsetsListener((v,insets)->{
+    static void insets(Activity a,View view,int padding){int maxWidth=a instanceof SettingsActivity?760:1100;int p=Math.max(dp(a,padding),(a.getResources().getDisplayMetrics().widthPixels-dp(a,maxWidth))/2);view.setOnApplyWindowInsetsListener((v,insets)->{
         v.setPadding(p+insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),p+insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;
     });view.requestApplyInsets();}
 }

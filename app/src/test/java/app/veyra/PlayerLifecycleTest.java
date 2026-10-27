@@ -104,4 +104,5 @@ public class PlayerLifecycleTest {
         }
     }
 
+    @Test public void sizingModesIncludeFitFillAndStretch()throws Exception{try(ActivityController<PlayerActivity> c=Robolectric.buildActivity(PlayerActivity.class,playback()).setup()){PlayerActivity a=c.get();Field mode=PlayerActivity.class.getDeclaredField("sizing");mode.setAccessible(true);Field vf=PlayerActivity.class.getDeclaredField("view");vf.setAccessible(true);java.lang.reflect.Method apply=PlayerActivity.class.getDeclaredMethod("applySizing");apply.setAccessible(true);int[] expected={androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL};for(int i=0;i<3;i++){mode.setInt(a,i);apply.invoke(a);assertEquals(expected[i],((PlayerView)vf.get(a)).getResizeMode());}}}
 }

@@ -2,12 +2,12 @@
 
 Application controls:
 - Default system certificate and hostname validation; no trust-all TLS or user-CA trust override.
-- INTERNET is the only requested permission. Player activity is not exported; PiP uses the Android API rather than overlay permission.
+- Internet and foreground data-sync permissions support streaming and user-started downloads. Notification permission is optional and requested only from the download screen. Player activity is not exported; PiP uses the Android API rather than overlay permission.
 - HTTP is limited to the active local native adapter. Imports cannot supply local-proxy entries; external media requires HTTPS through the Java player transport.
 - Media request headers are removed when a redirect or segment request changes origin. TLS downgrades are disabled. Hop-by-hop/Host overrides, control characters and excessive header data are rejected.
 - API responses, playback imports, poster downloads/decoded sizes and catalog recursion are bounded. API redirects are rejected; artwork uses HTTPS without cookies and refuses redirects.
 - The streaming SDKs are confined to separate non-exported app service processes. Their loopback ports are invalidated when bindings die; idle UI/PiP cleanup stops their dedicated processes. These processes share the app UID and are crash/lifecycle boundaries, not a separate security sandbox.
-- Tokens are memory-only. Resume/title/history metadata and installation IDs are app-private; cloud backup and device transfer are excluded. Source URLs are not saved in watch history.
+- Session tokens are memory-only. Download indexes retain origin media URLs inside app-private storage for cache lookup, and downloaded media is excluded from backup exports. Resume/title/history metadata and installation IDs are app-private; cloud backup and device transfer are excluded. Source URLs are not saved in watch history.
 - No rewards, purchases, balance-debits or forged entitlements are submitted. App code does not log credentials or complete signed URLs.
 - Credentials, real response captures and private SDK binaries remain outside the repository.
 
@@ -21,3 +21,5 @@ Material limits:
 Before release: complete ARM-device playback/lifecycle tests, audit or isolate the native component, check current dependency advisories, verify package identity support, and generate distribution notices.
 
 The app stages only installed native libraries in app-private code cache, marks them read-only and loads their absolute paths. Lint flags the dynamic load for review. No remotely fetched executable is accepted. Catalog preview storage excludes streaming URLs and authentication tokens.
+
+Offline playback only accepts completed records from the internal download index and uses a cache data source without a network upstream. Playback-file imports cannot opt into this path. Downloads use the same transport restrictions as online playback. The foreground service is non-exported, supports cancellation, keeps the native session alive while needed, and stops on Android data-sync timeout. Downloads have an 8 GiB per-item limit and require a 256 MiB free-space reserve.

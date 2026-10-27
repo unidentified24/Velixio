@@ -6,13 +6,14 @@ An Android streaming app with artwork-led discovery, a fullscreen player and a l
 - Browse films, series, animation and shorts, with search across configured catalogs.
 - Discover rotating featured picks and rating- and release-year-based collections.
 - Save titles to My list and resume from Continue watching.
-- Watch with quality, audio, caption and speed controls, episode autoplay and picture-in-picture.
-- Choose Amethyst, Ocean, Ember or OLED black, with comfortable or compact poster layouts.
+- Watch with quality, source, caption and picture-size controls, episode autoplay and picture-in-picture.
+- Choose Cinema, Pacific, Golden hour or OLED black, with comfortable or compact poster layouts.
 - Export and restore saved titles, viewing history and preferences using `.zunodata` backups.
 - Manage appearance, playback and data through dedicated Settings pages.
+- Download eligible streams and play completed copies offline; see [offline downloads and compatibility](docs/OFFLINE.md).
 
 ## Release track
-0.9.0 is the pre-1.0 review build. The next final milestone is 1.0.0, following device acceptance.
+0.10.0 is the major redesign review build. The next final milestone is 1.0.0, following device acceptance.
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.9:

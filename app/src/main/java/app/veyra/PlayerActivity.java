@@ -36,7 +36,10 @@ public final class PlayerActivity extends Activity {
     private FrameLayout root;
     private LinearLayout header, footer;
     private TextView status, titleView;
-    private Button miniButton;
+    private Button miniButton, sourceButton;
+    private String offlineId;private boolean offlinePinned;
+    private int sizing;
+    private final Runnable delayedBuffer=()->{if(player!=null&&player.getPlaybackState()==Player.STATE_BUFFERING)view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);};
     private boolean controlsVisible=true, cropVideo;
     private MediaSession session;
     private int sourceIndex;
@@ -50,12 +53,13 @@ public final class PlayerActivity extends Activity {
     };
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);Ui.configure(this);
-        if(saved!=null)cropVideo=saved.getBoolean("cropVideo",false);
+        if(saved!=null){cropVideo=saved.getBoolean("cropVideo",false);sizing=saved.getInt("sizing",cropVideo?1:0);}
         else if(!"short".equals(getIntent().getStringExtra("kind")))setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         if(saved==null && getSharedPreferences("settings",MODE_PRIVATE).getBoolean("rememberSpeed",true))speed=getSharedPreferences("settings",MODE_PRIVATE).getFloat("speed",1f);
         if(saved!=null){position=saved.getLong("position",0);playWhenReady=saved.getBoolean("playing",true);speed=saved.getFloat("speed",1f);}
         else try{position=getSharedPreferences("resume",MODE_PRIVATE).getLong(new JSONObject(getIntent().getStringExtra("playback")).optString("contentId"),0);}catch(Exception ignored){}
-        try { request=PlaybackJson.parseInternal(saved!=null && saved.containsKey("playback")?saved.getString("playback"):getIntent().getStringExtra("playback")); }
+        offlineId=getIntent().getStringExtra("offlineId");
+        try { request=offlineId!=null?OfflineStore.request(this,offlineId):PlaybackJson.parseInternal(saved!=null && saved.containsKey("playback")?saved.getString("playback"):getIntent().getStringExtra("playback")); }
         catch(Exception e) { if(getIntent().hasExtra("vodId"))recoverPlayback();else finish(); return; }
         position=getSharedPreferences("resume",MODE_PRIVATE).getLong(request.contentId,0);
         if(saved!=null) { sourceIndex=saved.getInt("source",0); position=saved.getLong("position",position); playWhenReady=saved.getBoolean("playing",true); speed=saved.getFloat("speed",1f); }
@@ -64,16 +68,18 @@ public final class PlayerActivity extends Activity {
     }
     private void createPlayerUi() {
         root=new FrameLayout(this);root.setBackgroundColor(android.graphics.Color.BLACK);
-        view=new PlayerView(this);view.setShowSubtitleButton(true);view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);
+        view=new PlayerView(this);view.setShowSubtitleButton(true);view.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);
         view.setContentDescription("Video player");view.setControllerShowTimeoutMs(3000);view.setControllerHideOnTouch(true);
-        view.setResizeMode(cropVideo?androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM:androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT);
+        applySizing();
         root.addView(view,new FrameLayout.LayoutParams(-1,-1));
         header=Ui.column(this);header.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xcc000000,0x00000000}));
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);
         Button back=Ui.quiet(this,"‹");back.setContentDescription("Back to title");back.setOnClickListener(v->finish());bar.addView(back,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
         titleView=Ui.text(this,request.title,14,Ui.INK);titleView.setMaxLines(1);titleView.setEllipsize(android.text.TextUtils.TruncateAt.END);bar.addView(titleView,new LinearLayout.LayoutParams(0,-2,1));
-        miniButton=Ui.quiet(this,"▣");miniButton.setContentDescription("Mini player");miniButton.setOnClickListener(v->enterMiniPlayer());miniButton.setVisibility(supportsPip()?View.VISIBLE:View.GONE);bar.addView(miniButton,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
-        Button settings=Ui.quiet(this,"⋮");settings.setContentDescription("Playback options");settings.setOnClickListener(v->playbackOptions());bar.addView(settings,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
+        sourceButton=Ui.chip(this,sourceName());sourceButton.setContentDescription("Change Original, Dub or available version");sourceButton.setOnClickListener(v->chooseSource());if(offlineId==null)bar.addView(sourceButton,new LinearLayout.LayoutParams(Ui.dp(this,92),Ui.dp(this,48)));
+        Button rotate=Ui.icon(this,"rotate","Rotate screen");rotate.setOnClickListener(v->setRequestedOrientation(getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE));bar.addView(rotate,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
+        miniButton=Ui.icon(this,"pip","Picture in picture · floating mini player");miniButton.setOnClickListener(v->enterMiniPlayer());miniButton.setVisibility(supportsPip()?View.VISIBLE:View.GONE);bar.addView(miniButton,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
+        Button settings=Ui.icon(this,"options","Player controls");settings.setContentDescription("Playback options");settings.setOnClickListener(v->playbackOptions());bar.addView(settings,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
         header.addView(bar);root.addView(header,new FrameLayout.LayoutParams(-1,-2,Gravity.TOP));
         footer=Ui.column(this);footer.setBackgroundColor(0x99000000);status=Ui.text(this,"",13,Ui.INK);status.setMaxLines(3);footer.addView(status);
         FrameLayout.LayoutParams notice=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);notice.topMargin=Ui.dp(this,56);root.addView(footer,notice);
@@ -90,15 +96,16 @@ public final class PlayerActivity extends Activity {
             return insets;
         });applyPlayerLayout();
     }
+    private String sourceName(){if(offlineId!=null)return "Offline";if(request==null)return "Version";return request.sources.get(Math.max(0,Math.min(sourceIndex,request.sources.size()-1))).label;}
+    private void applySizing(){int[] modes={androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL};sizing=Math.max(0,Math.min(2,sizing));view.setResizeMode(modes[sizing]);cropVideo=sizing==1;}
     private void playbackOptions(){
-        view.showController();new AlertDialog.Builder(this).setTitle("Playback options").setItems(
-            new String[]{"Original / Sub","Video quality","Audio language","Captions",cropVideo?"Fit video (show full picture)":"Fill screen (crop edges)","Previous episode","Next episode","Rotate screen","Reconnect"},(dialog,index)->{
-                if(index==0)chooseSource();else if(index==1)chooseTracks(C.TRACK_TYPE_VIDEO);else if(index==2)chooseTracks(C.TRACK_TYPE_AUDIO);else if(index==3)chooseTracks(C.TRACK_TYPE_TEXT);
-                else if(index==4){cropVideo=!cropVideo;view.setResizeMode(cropVideo?androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM:androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT);}
-                else if(index==5||index==6){if(getIntent().hasExtra("vodId"))resolveSource(selectedType(),index==5?-1:1);else Toast.makeText(this,"No episode list for this video",Toast.LENGTH_SHORT).show();}
-                else if(index==7)setRequestedOrientation(getResources().getConfiguration().orientation==Configuration.ORIENTATION_LANDSCAPE?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                else if(getIntent().hasExtra("vodId"))refreshSource(request.sources.get(sourceIndex).id);else{release();startPlayer();}
-            }).setOnDismissListener(dialog->{if(!isMini())view.showController();}).show();
+        view.showController();List<String> labels=new ArrayList<>();List<Runnable> actions=new ArrayList<>();
+        labels.add("Picture size · "+new String[]{"Fit","Fill / crop","Stretch"}[sizing]);actions.add(()->ActionSheet.show(this,"Picture size",new String[]{"Fit · complete picture","Fill · crop edges","Stretch · fill without bars"},index->{sizing=index;applySizing();}));
+        labels.add("Video quality");actions.add(()->chooseTracks(C.TRACK_TYPE_VIDEO));
+        if(player!=null&&player.getCurrentTracks().isTypeSupported(C.TRACK_TYPE_TEXT)){labels.add("Captions");actions.add(()->chooseTracks(C.TRACK_TYPE_TEXT));}
+        if(offlineId==null){labels.add("Download this episode");actions.add(()->DownloadWorker.start(this,getIntent().getStringExtra("playback")));}
+        if(getIntent().hasExtra("vodId")){labels.add("Episodes & connection");actions.add(()->ActionSheet.show(this,"Episode controls",new String[]{"Previous episode","Next episode","Reconnect current stream"},index->{if(index<2)resolveSource(selectedType(),index==0?-1:1);else refreshSource(selectedType());}));}
+        ActionSheet.show(this,"Watching controls",labels.toArray(new String[0]),index->actions.get(index).run());
     }
     private void updateChrome(){
         if(header==null||footer==null)return;
@@ -165,22 +172,23 @@ public final class PlayerActivity extends Activity {
         resolving=false;release();request=replacement;sourceIndex=0;
         if(offset!=0){position=getSharedPreferences("resume",MODE_PRIVATE).getLong(request.contentId,0);playWhenReady=true;}
         if(trackPreferences!=null)trackPreferences=trackPreferences.buildUpon().clearOverrides().build();
-        titleView.setText(request.title);
+        titleView.setText(request.title);sourceButton.setText(sourceName());
         getIntent().putExtra("playback",json).putExtra("audioType",type).putExtra("collection",collection).putExtra("variants",variants);
         if(started)startPlayer();
     }
     private void chooseSource() {
+        try{JSONArray connections=new JSONArray(getIntent().getStringExtra("connections"));if(connections.length()>1){ActionSheet.show(this,"Playback source",new String[]{"Original / Dub / available versions","Change connection"},i->{if(i==0)chooseVersion();else{String[] labels=new String[connections.length()];for(int n=0;n<labels.length;n++)labels[n]="Connection "+(n+1)+(connections.optJSONObject(n).optString("provider").equals(getIntent().getStringExtra("provider"))?" · current":"");ActionSheet.show(this,"Available connections",labels,index->switchConnection(connections.optJSONObject(index)));}});return;}}catch(Exception ignored){}chooseVersion();
+    }
+    private void switchConnection(JSONObject choice){if(resolving||choice==null)return;resolving=true;status.setText("Opening connection…");String provider=choice.optString("provider"),id=choice.optString("id"),kind=getIntent().getStringExtra("kind");resolver.execute(()->{try{CatalogBackend backend=CatalogBackend.get(this,provider);JSONObject detail=backend.detail(id,"0",kind);JSONObject episode=EpisodeSelection.select(detail.getJSONArray("vod_collection"),getIntent().getStringExtra("collection"),0);String json=backend.playbackJson(detail,episode,"Selected version");PlaybackRequest replacement=PlaybackJson.parseInternal(json);String episodeKey=EpisodeSelection.key(episode);runOnUiThread(()->{if(isDestroyed()||isFinishing())return;getIntent().putExtra("provider",provider).putExtra("vodId",id);completeResolution(replacement,json,"0",episodeKey,detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString(),0);});}catch(Exception e){runOnUiThread(()->{if(!isDestroyed()){resolving=false;status.setText("This connection could not open the episode. Current playback is preserved.");}});}});}
+    private void chooseVersion() {
         if(getIntent().hasExtra("vodId")) {
             try {JSONArray variants=new JSONArray(getIntent().getStringExtra("variants"));
                 if(variants.length()>0){String[] labels=new String[variants.length()];for(int i=0;i<labels.length;i++)labels[i]=variants.getJSONObject(i).getString("type_name");
-                    new AlertDialog.Builder(this).setTitle("Playback source").setItems(labels,(d,i)->{try{refreshSource(variants.getJSONObject(i).optString("type"));}catch(JSONException ignored){}}).show();return;}
+                    ActionSheet.show(this,"Choose version",labels,i->{try{refreshSource(variants.getJSONObject(i).optString("type"));}catch(JSONException ignored){}});return;}
             }catch(Exception ignored){}
         }
 
-        new AlertDialog.Builder(this).setTitle("Playback source")
-            .setSingleChoiceItems(request.sources.stream().map(s->s.label).toArray(String[]::new),sourceIndex,
-                (dialog,index)->{ if(index!=sourceIndex) { release(); sourceIndex=index; startPlayer(); } dialog.dismiss(); })
-            .setNegativeButton("Close",null).show();
+        ActionSheet.show(this,"Choose version",request.sources.stream().map(source->source.label).toArray(String[]::new),index->{if(index!=sourceIndex){release();sourceIndex=index;startPlayer();sourceButton.setText(sourceName());}});
     }
     private void chooseTracks(int type) {
         if(player==null) return;
@@ -198,20 +206,21 @@ public final class PlayerActivity extends Activity {
             }
         }
         if(labels.size()==1) { Toast.makeText(this,"No additional tracks in this stream",Toast.LENGTH_SHORT).show(); return; }
-        new AlertDialog.Builder(this).setTitle(type==C.TRACK_TYPE_VIDEO?"Stream quality":type==C.TRACK_TYPE_AUDIO?"Audio":"Captions").setItems(labels.toArray(new String[0]),(d,i)->{if(player!=null)choices.get(i).run();}).show();
+        ActionSheet.show(this,type==C.TRACK_TYPE_VIDEO?"Stream quality":"Captions",labels.toArray(new String[0]),i->{if(player!=null)choices.get(i).run();});
     }
     private void startPlayer() {
         if(!started || request==null || player!=null || view==null || isFinishing()) return;
         StreamSource source=request.sources.get(sourceIndex);
-        if(source.url.startsWith("http://127.0.0.1:") && !CatalogBackend.isActiveProxy(source.url)) {recoverPlayback();return;}
+        if(offlineId==null && source.url.startsWith("http://127.0.0.1:") && !CatalogBackend.isActiveProxy(source.url)) {recoverPlayback();return;}
 
-        DataSource.Factory http=StreamHttp.factory(source);
+        if(offlineId!=null&&!offlinePinned){OfflineStore.pin(offlineId);offlinePinned=true;}
+        DataSource.Factory http=offlineId==null?StreamHttp.factory(source):OfflineStore.readOnly(this,offlineId);
         player=new ExoPlayer.Builder(this).setSeekBackIncrementMs(10000).setSeekForwardIncrementMs(10000).setMediaSourceFactory(new DefaultMediaSourceFactory(http)).build();
         player.setAudioAttributes(new AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),true);
         player.setHandleAudioBecomingNoisy(true);
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int state) {
-                status.setText(state==Player.STATE_BUFFERING ? "Loading…" : state==Player.STATE_ENDED ? "Playback finished" : "");
+                handler.removeCallbacks(delayedBuffer);view.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);if(state==Player.STATE_BUFFERING)handler.postDelayed(delayedBuffer,800);status.setText(state==Player.STATE_ENDED?"Playback finished":"");
                 syncSession(); updatePip();
                 if(state==Player.STATE_ENDED && getIntent().hasExtra("vodId") && getSharedPreferences("settings",MODE_PRIVATE).getBoolean("autoplay",false)) {
                     remember();resolveSource(selectedType(),1);
@@ -222,7 +231,7 @@ public final class PlayerActivity extends Activity {
             @Override public void onVideoSizeChanged(VideoSize size) { updatePip(); }
             @Override public void onPlaybackParametersChanged(PlaybackParameters params) { speed=params.speed;if(getSharedPreferences("settings",MODE_PRIVATE).getBoolean("rememberSpeed",true))getSharedPreferences("settings",MODE_PRIVATE).edit().putFloat("speed",speed).apply();syncSession(); }
             @Override public void onPlayerError(PlaybackException error) {
-                status.setText("This stream could not play. It may have expired, lost its connection or require an unsupported format. Open Playback options to reconnect."); syncSession(); updatePip();
+                status.setText(offlineId!=null?"This offline copy could not play. Delete it and download the title again.":"This stream could not play. It may have expired, lost its connection or require an unsupported format. Open Playback options to reconnect."); syncSession(); updatePip();
             }
         });
         List<MediaItem.SubtitleConfiguration> captions=new ArrayList<>();
@@ -297,19 +306,19 @@ public final class PlayerActivity extends Activity {
         if(getIntent().hasExtra("vodId"))WatchHistory.remember(this,getIntent().getStringExtra("provider"),getIntent().getStringExtra("kind"),getIntent().getStringExtra("vodId"),getIntent().getStringExtra("collection"),selectedType(),getIntent().getStringExtra("catalogTitle")==null?request.title:getIntent().getStringExtra("catalogTitle"),getIntent().getStringExtra("poster"),current,player.getDuration(),player.getPlaybackState()==Player.STATE_ENDED);
     }
     private void release() {
-        handler.removeCallbacks(saveProgress);
-        if(player==null)return;
+        handler.removeCallbacks(saveProgress);handler.removeCallbacks(delayedBuffer);
+        if(player==null){if(offlinePinned){OfflineStore.unpin(offlineId);offlinePinned=false;}return;}
         trackPreferences=player.getTrackSelectionParameters();
         remember(); position=player.getPlaybackState()==Player.STATE_ENDED?0:Math.max(0,player.getCurrentPosition()); playWhenReady=player.getPlayWhenReady(); speed=player.getPlaybackParameters().speed;
         if(session!=null) { session.setActive(false); session.release(); session=null; }
-        view.setPlayer(null); player.release(); player=null; view.setKeepScreenOn(false); updatePip();
+        view.setPlayer(null); player.release(); player=null;if(offlinePinned){OfflineStore.unpin(offlineId);offlinePinned=false;} view.setKeepScreenOn(false); updatePip();
     }
     @Override protected void onStart() { super.onStart(); started=true; startPlayer(); applyPlayerLayout(); }
     // PiP pauses the Activity, but keeps it visible: release only when it stops.
     @Override protected void onStop() { started=false; release(); super.onStop(); }
     @Override protected void onDestroy() { resolver.shutdownNow(); release(); super.onDestroy(); }
     @Override protected void onSaveInstanceState(Bundle saved) {
-        saved.putBoolean("cropVideo",cropVideo);saved.putString("playback",getIntent().getStringExtra("playback"));
+        saved.putInt("sizing",sizing);saved.putBoolean("cropVideo",cropVideo);saved.putString("playback",getIntent().getStringExtra("playback"));
         saved.putInt("source",sourceIndex); saved.putLong("position",player==null?position:player.getCurrentPosition());
         saved.putBoolean("playing",player==null?playWhenReady:player.getPlayWhenReady()); saved.putFloat("speed",speed); super.onSaveInstanceState(saved);
     }

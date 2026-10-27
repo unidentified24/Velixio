@@ -65,6 +65,7 @@ final class CatalogAdapter extends RecyclerView.Adapter<CatalogAdapter.Holder> {
         String year=item.optString("vod_year"),score=item.optString("vod_douban_score");
         h.meta.setText(year+(score.isEmpty()||score.equals("0")?"":"  ·  ★ "+score));
         posters.load(owner,h.image,item.optString("vod_pic"));
+        h.itemView.setOnLongClickListener(v->{ActionSheet.show(owner,item.optString("vod_name"),new String[]{"Hide from Home recommendations","Keep showing this title"},index->{owner.getSharedPreferences("hidden-titles",0).edit().putBoolean(LibraryStore.key(item),index==0).apply();Toast.makeText(owner,"Your preference will apply when Home refreshes",Toast.LENGTH_SHORT).show();});return true;});
         h.itemView.setContentDescription("View "+item.optString("vod_name"));h.itemView.setOnClickListener(v->open.open(item));
         if(h.play!=null)h.play.setOnClickListener(v->open.open(item));
         if(h.save!=null){updateSave(h,item);h.save.setOnClickListener(v->{LibraryStore.toggle(owner,item);updateSave(h,item);Toast.makeText(owner,LibraryStore.saved(owner,item)?"Added to My list":"Removed from My list",Toast.LENGTH_SHORT).show();});}

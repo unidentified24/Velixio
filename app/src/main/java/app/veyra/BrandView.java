@@ -1,13 +1,4 @@
 package app.veyra;
-import android.content.Context;
-import android.graphics.*;
-import android.view.View;
-/** A custom geometric ZUNO wordmark with a folded-play Z. */
-final class BrandView extends View {
- private final Paint ink=new Paint(Paint.ANTI_ALIAS_FLAG);private final Path p=new Path();
- BrandView(Context c){super(c);setContentDescription("Zuno");setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);}
- protected void onDraw(Canvas c){super.onDraw(c);float scale=Math.min(getWidth()/138f,getHeight()/44f);c.save();c.translate(0,(getHeight()-30*scale)/2);c.scale(scale,scale);
- ink.setColor(Ui.ACCENT);ink.setStyle(Paint.Style.FILL);p.reset();p.moveTo(0,2);p.lineTo(29,2);p.lineTo(12,23);p.lineTo(29,23);p.lineTo(29,29);p.lineTo(0,29);p.lineTo(17,8);p.lineTo(0,8);p.close();c.drawPath(p,ink);
- ink.setColor(Ui.INK);ink.setStyle(Paint.Style.STROKE);ink.setStrokeWidth(4);ink.setStrokeCap(Paint.Cap.ROUND);ink.setStrokeJoin(Paint.Join.ROUND);p.reset();p.moveTo(43,4);p.lineTo(43,19);p.cubicTo(43,32,65,32,65,19);p.lineTo(65,4);p.moveTo(79,27);p.lineTo(79,4);p.lineTo(101,27);p.lineTo(101,4);c.drawPath(p,ink);c.drawRoundRect(113,4,135,27,10,10,ink);c.restore();
- }
-}
+import android.content.Context;import android.graphics.*;import android.view.View;
+/** Film-frame play mark and bespoke rounded lowercase lettering. */
+final class BrandView extends View {private final Paint p=new Paint(3);private final Path path=new Path();BrandView(Context c){super(c);setContentDescription("Zuno");setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);}protected void onDraw(Canvas c){super.onDraw(c);float scale=Math.min(getWidth()/146f,getHeight()/44f);c.save();c.translate(0,(getHeight()-32*scale)/2);c.scale(scale,scale);p.setColor(Ui.ACCENT);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(2.5f);c.drawRoundRect(1,1,34,31,7,7,p);p.setStyle(Paint.Style.FILL);path.reset();path.moveTo(13,8);path.lineTo(25,16);path.lineTo(13,24);path.close();c.drawPath(path,p);for(int x:new int[]{8,16,24}){c.drawCircle(x,3,1,p);c.drawCircle(x,29,1,p);}p.setColor(Ui.INK);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(3.5f);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeJoin(Paint.Join.ROUND);path.reset();path.moveTo(48,11);path.lineTo(65,11);path.lineTo(48,27);path.lineTo(65,27);path.moveTo(75,11);path.lineTo(75,21);path.cubicTo(75,31,92,31,92,21);path.lineTo(92,11);path.moveTo(102,27);path.lineTo(102,11);path.moveTo(102,18);path.cubicTo(102,7,119,7,119,18);path.lineTo(119,27);c.drawPath(path,p);c.drawOval(129,10,145,28,p);c.restore();}}

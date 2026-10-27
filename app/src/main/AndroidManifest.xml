@@ -1,11 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <application android:name=".VeyraApplication" android:label="Zuno" android:theme="@style/Theme.Zuno"
         android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/network_security_config"
         android:icon="@drawable/ic_zuno" android:supportsRtl="true">
         <service android:name=".data.CurrentEngineService" android:exported="false" android:process=":stream_current" />
         <service android:name=".data.ClassicEngineService" android:exported="false" android:process=":stream_classic" />
         <activity android:name=".PlayerActivity" android:exported="false" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
+        <service android:name=".DownloadWorker" android:exported="false" android:foregroundServiceType="dataSync" />
+        <activity android:name=".DownloadsActivity" android:exported="false" />
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
