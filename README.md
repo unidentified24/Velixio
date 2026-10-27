@@ -43,3 +43,20 @@ See [verification](docs/VERIFICATION.md) for current results and device checks. 
 - [Security](docs/SECURITY.md)
 - [Release checklist](docs/ROADMAP.md)
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+
+## License and Attribution
+
+Zuno is an open-source Android application developed by [unidentified24](https://github.com/unidentified24).
+
+Copyright © 2026 unidentified24.
+
+Licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
+
+You may fork, modify, and redistribute Zuno under the terms of GPL v3.
+
+When redistributing Zuno, you must preserve applicable copyright and license notices. Modified versions must also identify their changes as required by GPL v3.
+
+Do not falsely claim authorship of the original Zuno source code.
+
+Original project: https://github.com/unidentified24/Zuno
