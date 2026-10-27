@@ -2,6 +2,11 @@
 
 An Android streaming app with artwork-led discovery, a fullscreen player and a library you can take with you.
 
+## Downloads
+[Download APKs from GitHub Releases](https://github.com/unidentified24/Zuno/releases).
+
+Choose the newest release candidate for testing; older APKs are retained as historical builds.
+
 ## Features
 - Browse films, series, animation and shorts, with search across configured catalogs.
 - Discover rotating featured picks and rating- and release-year-based collections.
