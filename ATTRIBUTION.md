@@ -3,13 +3,16 @@
 **Project:** Zuno  
 **Original author:** unidentified24  
 **Original repository:** https://github.com/unidentified24/Zuno
+## Previous Project Name — Veyra
+
+Zuno was originally developed under the working name **Veyra** before its public release.
+
+The names **Veyra** and **Zuno** refer to the same software project and its development history.
 
 Copyright © 2026 unidentified24.
 
-Zuno is distributed under GNU GPL v3.
+Source files, documentation, packages, and development history containing the name Veyra remain part of the Zuno project.
 
-The original authorship of Zuno must not be misrepresented. Redistribution of the original code must preserve the copyright and license notices required by GPL v3.
+Renaming, copying, or redistributing this code does not transfer ownership of the original copyrighted work.
 
-Modified versions must be identified as modified and must comply with GPL v3.
-
-Creating a fork, renaming the project, or publishing it in a separate repository does not transfer ownership of the original copyrighted code.
+All applicable GNU GPL v3 copyright, attribution, and license-notice requirements continue to apply regardless of the project's name.
