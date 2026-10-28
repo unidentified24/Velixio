@@ -8,7 +8,7 @@ Open Settings → Your data → Automatic backups and choose a folder once. Veli
 Backups contain saved titles, viewing history, playback positions and preferences. Videos, credentials and streaming URLs are excluded. New files use `.velixiodata`; earlier version-1 metadata backups remain importable.
 
 ## Publishing an update
-1. Increase both `versionCode` and `versionName` in `app/build.gradle`. This build is code 17, version 1.0.1-rc1. For the next candidate use code 18 or higher and 1.0.1-rc2; for stable use 1.0.1 or a newer version.
+1. Increase both `versionCode` and `versionName` in `app/build.gradle`. This build is code 19, version 1.0.2. Next use code 20 or higher and version 1.0.3, or a numbered revision such as 1.0.2-1.
 2. Build the complete APK using the same installation package, signing key and required local integration inputs. Keep the signing key and private inputs out of Git. Attach source for the matching version alongside distribution documentation.
 3. Publish a GitHub Release in `unidentified24/Velixio`, tagged `v1.0.1-rc2`, `v1.0.1`, or another newer semantic version. Attach the signed APK as a release asset, not as a source file. GitHub must expose its `sha256:` asset digest. Mark candidates as prereleases; stable installations ignore candidates.
 4. Test Check for updates from an older installation, complete the Android install confirmation, and verify the version and retained library.
@@ -21,3 +21,8 @@ This build is non-debuggable but retains the existing development signing identi
 Automated tests cover release selection, hash requirements, backup formats, scheduling, retention and failed writes. Actual installation of a future update and real document-provider behavior still need phone testing. No release is uploaded automatically by this project.
 
 Play Protect acceptance cannot be guaranteed. This app does not request SMS access, accessibility-service access or notification-listener access. A block can still require Google review of the complete APK and its bundled runtime. See Google's [developer warning guidance](https://developers.google.com/android/play-protect/warning-dev-guidance).
+
+## Version order
+Tags may be plain (1.0.2), prefixed (v1.0.2 or VelixioStream1.0.2), or numbered revisions (1.0.2-1, 1.0.2-2, 1.0.2-3). The order is 1.0.2 < 1.0.2-1 < 1.0.2-2 < 1.0.3. Earlier rc versions remain supported and sort before their final version. If a tag has no version, the release title is checked. Keep the tag aligned with the APK version; Android still requires an increased versionCode.
+
+Older installed updaters still need plain semantic tags such as v1.0.2 to receive this fix.

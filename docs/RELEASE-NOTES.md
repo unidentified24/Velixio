@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.0.2
+- Accept numbered release tags such as 1.0.2-3 and branded version tags, with release-title fallback. Keep signing and checksum verification.
+- Show a brief Velixio launch overlay while the catalog loads concurrently.
+- Dismiss successful settings notices after 2.2 seconds and explicitly clear finished download notifications.
+- Remove failed/cancelled partial media and update APK cache files older than one day. Completed downloads are retained.
+
+
 ## 1.0.1-rc2
 - Add Sunset (aubergine and peach) and Midnight gold (ink blue and champagne).
 - Preserve existing theme selections and include both new palettes in backup and restore.

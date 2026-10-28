@@ -23,7 +23,7 @@ Choose the newest release candidate for testing; older APKs are retained as hist
 - Schedule daily backups to a folder you choose, retaining seven copies.
 
 ## Release track
-1.0.1-rc2 introduces the Velixio identity, in-app updates and automatic backups. Device acceptance is pending.
+1.0.2 introduces the Velixio identity, in-app updates and automatic backups. Device acceptance is pending.
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.9:

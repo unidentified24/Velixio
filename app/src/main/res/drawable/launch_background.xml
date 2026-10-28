@@ -1,0 +1,1 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item android:drawable="@color/launcher_background"/><item android:width="112dp" android:height="112dp" android:gravity="center"><bitmap android:src="@drawable/velixio_logo" android:gravity="fill"/></item></layer-list>

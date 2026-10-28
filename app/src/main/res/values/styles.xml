@@ -9,4 +9,5 @@
 <style name="Theme.Velixio.Glacier" parent="Theme.Velixio"><item name="android:colorAccent">#A4D9FF</item><item name="android:colorBackground">#0B1421</item></style>
 <style name="Theme.Velixio.Sunset" parent="Theme.Velixio"><item name="android:colorAccent">#FFB38A</item><item name="android:colorBackground">#1A101B</item></style>
 <style name="Theme.Velixio.MidnightGold" parent="Theme.Velixio"><item name="android:colorAccent">#E7CE8A</item><item name="android:colorBackground">#0B101C</item></style>
+<style name="Theme.Velixio.Launch" parent="Theme.Velixio"><item name="android:windowBackground">@drawable/launch_background</item></style>
 </resources>
