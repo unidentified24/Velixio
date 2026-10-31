@@ -12,6 +12,7 @@ final class Ui {
         int theme=a.getSharedPreferences("settings",0).getInt("theme",0);
         int[][] colors=ThemePalette.COLORS;theme=ThemePalette.index(theme);BG=colors[theme][0];ACCENT=colors[theme][1];SURFACE=colors[theme][2];
         a.setTheme(new int[]{R.style.Theme_Velixio,R.style.Theme_Velixio_Ocean,R.style.Theme_Velixio_Ember,R.style.Theme_Velixio_Oled,R.style.Theme_Velixio_Amethyst,R.style.Theme_Velixio_Forest,R.style.Theme_Velixio_Rosewood,R.style.Theme_Velixio_Glacier,R.style.Theme_Velixio_Sunset,R.style.Theme_Velixio_MidnightGold}[theme]);
+        MUTED=a.getSharedPreferences("settings",0).getBoolean("highContrast",false)?0xffe0e5ec:0xffa5adb5;
         a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);a.getWindow().setBackgroundDrawable(new ColorDrawable(BG));
     }
     static int columns(Activity a){int width=a.getResources().getConfiguration().screenWidthDp;int card=a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?110:145;return Math.max(2,Math.min(8,(width-32)/card));}
@@ -20,7 +21,7 @@ final class Ui {
     static int dp(Activity a,int value){return Math.round(value*a.getResources().getDisplayMetrics().density);}
     static LinearLayout column(Activity a){LinearLayout v=new LinearLayout(a);v.setOrientation(LinearLayout.VERTICAL);v.setBackgroundColor(BG);return v;}
     static TextView text(Activity a,String value,int size,int color){
-        TextView v=new TextView(a);v.setText(value);v.setTextSize(size);v.setTextColor(color);v.setIncludeFontPadding(false);
+        TextView v=new TextView(a);v.setText(value);v.setTextSize(size*(a.getSharedPreferences("settings",0).getBoolean("largerText",false)?1.15f:1f));v.setTextColor(color);v.setIncludeFontPadding(false);
         v.setPadding(0,dp(a,6),0,dp(a,6));return v;
     }
     private static GradientDrawable shape(Activity a,int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(a,radius));return d;}

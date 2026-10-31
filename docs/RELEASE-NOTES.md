@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.1.0-rc1 — Android feature development
+- Add local metadata profiles while preserving the original profile's library and keeping playback pinned to its starting profile.
+- Add collections, ratings, notes, watched controls, explicit discovery feedback and per-profile Home shelf visibility/order. Include personal records in validated metadata backups.
+- Add richer update prompts, reminder snoozing, a What's new page, storage breakdown, Wi-Fi/download-budget preferences, private download notices and history privacy.
+- Add gesture seeking/brightness/volume, touch lock, a sleep timer, caption appearance controls, cancellable episode countdown and direct playback recovery.
+- Add debounced search results, offline startup routing, launcher shortcuts, viewing-progress overview and reviewed feedback sharing.
+- Retain automatic-backup status, and bind scheduled backups to the profile chosen during folder setup.
+
+84 automated tests pass; Android debug lint has no errors. This is a debug-signed development build. Device playback, Wi-Fi changes, visual/accessibility acceptance and live provider behavior are not verified for this increment. The download queue, advanced recommendations/filters, TV/casting, widgets, trailers, reminders, subtitle timing and audio enhancements remain on the roadmap. See ANDROID-EXPANSION.md.
+
 ## 1.0.2
 - Accept numbered release tags such as 1.0.2-3 and branded version tags, with release-title fallback. Keep signing and checksum verification.
 - Show a brief Velixio launch overlay while the catalog loads concurrently.

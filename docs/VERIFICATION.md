@@ -1,6 +1,15 @@
 # Verification
 
-## Current checkpoint: 1.0.1-rc1
+## Current development checkpoint: 1.1.0-rc1
+- Debug APK assembly, device-test compilation and 84 JVM/lifecycle tests passed.
+- Android debug lint: zero errors and 59 warnings.
+- Packaged signature, installation package/version, native bindings, companion asset and all eight native-library integrity checks passed.
+- Added tests for profile isolation, playback-profile pinning, private-history suppression, personal-record backup allowlisting/validation, Home ordering, protected cleanup, PiP touch-lock behavior, restored sleep timers and scheduled-backup profile binding.
+- Physical-device playback, gestures, Wi-Fi transitions, notification behavior, document-provider behavior, large fonts/TalkBack and visual acceptance remain unverified. No Play Protect verdict is established.
+
+This is the first increment of the Android expansion. See ANDROID-EXPANSION.md for feature limits and pending work.
+
+## Previous checkpoint: 1.0.1-rc1
 - Non-debuggable release APK assembly and device-test APK compilation passed. Device tests were not executed for this checkpoint.
 - All 69 JVM/lifecycle tests passed.
 - Android release lint reported zero errors and 45 warnings.

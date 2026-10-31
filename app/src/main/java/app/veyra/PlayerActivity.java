@@ -34,11 +34,12 @@ public final class PlayerActivity extends Activity {
     private ExoPlayer player;
     private PlayerView view;
     private FrameLayout root;
-    private LinearLayout header, footer;
+    private LinearLayout header, footer, recovery;
     private TextView status, titleView;
     private Button miniButton, sourceButton;
     private String offlineId;private boolean offlinePinned;
     private int sizing;
+    private Runnable nextTicks;private android.app.Dialog nextPrompt;private View gestureLayer;private Button unlock;private boolean touchLocked,sleepAtEnd;private long sleepDeadline;private final Runnable sleepAction=()->{sleepDeadline=0;if(player!=null)player.pause();};private final Runnable nextAction=()->{if(started&&!isFinishing()){if(nextPrompt!=null)nextPrompt.dismiss();resolveSource(selectedType(),1);}};
     private final Runnable delayedBuffer=()->{if(player!=null&&player.getPlaybackState()==Player.STATE_BUFFERING)view.setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING);};
     private boolean controlsVisible=true, cropVideo;
     private MediaSession session;
@@ -52,16 +53,16 @@ public final class PlayerActivity extends Activity {
         public void run() { remember(); handler.postDelayed(this,5000); }
     };
     @Override public void onCreate(Bundle saved) {
-        super.onCreate(saved);Ui.configure(this);
-        if(saved!=null){cropVideo=saved.getBoolean("cropVideo",false);sizing=saved.getInt("sizing",cropVideo?1:0);}
+        super.onCreate(saved);getIntent().putExtra("_profile",ProfileStore.id(this));Ui.configure(this);
+        if(saved!=null){sleepDeadline=saved.getLong("sleepDeadline",0);sleepAtEnd=saved.getBoolean("sleepAtEnd",false);if(sleepDeadline>0)handler.postDelayed(sleepAction,Math.max(0,sleepDeadline-android.os.SystemClock.elapsedRealtime()));cropVideo=saved.getBoolean("cropVideo",false);sizing=saved.getInt("sizing",cropVideo?1:0);}
         else if(!"short".equals(getIntent().getStringExtra("kind")))setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         if(saved==null && getSharedPreferences("settings",MODE_PRIVATE).getBoolean("rememberSpeed",true))speed=getSharedPreferences("settings",MODE_PRIVATE).getFloat("speed",1f);
         if(saved!=null){position=saved.getLong("position",0);playWhenReady=saved.getBoolean("playing",true);speed=saved.getFloat("speed",1f);}
-        else try{position=getSharedPreferences("resume",MODE_PRIVATE).getLong(new JSONObject(getIntent().getStringExtra("playback")).optString("contentId"),0);}catch(Exception ignored){}
+        else try{position=app.veyra.ProfileStore.prefs(this,"resume").getLong(new JSONObject(getIntent().getStringExtra("playback")).optString("contentId"),0);}catch(Exception ignored){}
         offlineId=getIntent().getStringExtra("offlineId");
         try { request=offlineId!=null?OfflineStore.request(this,offlineId):PlaybackJson.parseInternal(saved!=null && saved.containsKey("playback")?saved.getString("playback"):getIntent().getStringExtra("playback")); }
         catch(Exception e) { if(getIntent().hasExtra("vodId"))recoverPlayback();else finish(); return; }
-        position=getSharedPreferences("resume",MODE_PRIVATE).getLong(request.contentId,0);
+        position=app.veyra.ProfileStore.prefs(this,"resume").getLong(request.contentId,0);
         if(saved!=null) { sourceIndex=saved.getInt("source",0); position=saved.getLong("position",position); playWhenReady=saved.getBoolean("playing",true); speed=saved.getFloat("speed",1f); }
         if(sourceIndex<0 || sourceIndex>=request.sources.size()) sourceIndex=0;
         createPlayerUi();
@@ -71,7 +72,7 @@ public final class PlayerActivity extends Activity {
         view=(PlayerView)getLayoutInflater().inflate(R.layout.velixio_player,root,false);view.setShowSubtitleButton(false);view.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);
         view.setContentDescription("Video player");view.setControllerShowTimeoutMs(3000);view.setControllerHideOnTouch(true);
         androidx.media3.ui.DefaultTimeBar timeline=view.findViewById(androidx.media3.ui.R.id.exo_progress);if(timeline!=null){timeline.setPlayedColor(Ui.ACCENT);timeline.setScrubberColor(Ui.ACCENT);}
-        applySizing();
+        applySizing();applyCaptionAppearance();
         root.addView(view,new FrameLayout.LayoutParams(-1,-1));
         header=Ui.column(this);header.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,new int[]{0xcc000000,0x00000000}));
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);
@@ -89,13 +90,13 @@ public final class PlayerActivity extends Activity {
         Button captions=Ui.quiet(this,"Captions");captions.setOnClickListener(v->{if(player!=null&&player.getCurrentTracks().isTypeSupported(C.TRACK_TYPE_TEXT))chooseTracks(C.TRACK_TYPE_TEXT);else Toast.makeText(this,"No captions are available for this version",Toast.LENGTH_SHORT).show();});tools.addView(captions);
         if(getIntent().hasExtra("vodId")){Button episodes=Ui.quiet(this,"Episodes");episodes.setOnClickListener(v->showEpisodes());tools.addView(episodes);}
 
-        footer=Ui.column(this);footer.setBackgroundColor(0x99000000);status=Ui.text(this,"",13,Ui.INK);status.setMaxLines(3);footer.addView(status);
+        footer=Ui.column(this);footer.setBackgroundColor(0x99000000);status=Ui.text(this,"",13,Ui.INK);status.setMaxLines(3);footer.addView(status);recovery=new LinearLayout(this);Button retryPlayback=Ui.chip(this,"Retry playback");retryPlayback.setOnClickListener(v->{if(offlineId==null&&getIntent().hasExtra("vodId"))refreshSource(selectedType());else if(player!=null){player.prepare();player.play();}});recovery.addView(retryPlayback);if(offlineId==null){Button switchVersion=Ui.quiet(this,"Switch version");switchVersion.setOnClickListener(v->chooseSource());recovery.addView(switchVersion);}recovery.setVisibility(View.GONE);footer.addView(recovery);
         FrameLayout.LayoutParams notice=new FrameLayout.LayoutParams(-1,-2,Gravity.TOP);notice.topMargin=Ui.dp(this,56);root.addView(footer,notice);
         status.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence t,int start,int count,int after){} public void onTextChanged(CharSequence t,int start,int before,int count){updateChrome();}public void afterTextChanged(android.text.Editable t){}});
-        view.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener)visibility->{controlsVisible=visibility==View.VISIBLE;updateChrome();});
+        view.setControllerVisibilityListener((PlayerView.ControllerVisibilityListener)visibility->{controlsVisible=visibility==View.VISIBLE;if(gestureLayer!=null)gestureLayer.setVisibility((touchLocked||!controlsVisible)&&!isInPictureInPictureMode()?View.VISIBLE:View.GONE);updateChrome();});
         view.setFullscreenButtonClickListener(fullscreen->setRequestedOrientation(fullscreen?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT));
         view.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->updatePip());
-        setContentView(root);root.setOnApplyWindowInsetsListener((v,insets)->{
+        installGestureLayer();setContentView(root);root.setOnApplyWindowInsetsListener((v,insets)->{
             int left=insets.getSystemWindowInsetLeft(),right=insets.getSystemWindowInsetRight(),top=insets.getSystemWindowInsetTop();
             if(Build.VERSION.SDK_INT>=28&&insets.getDisplayCutout()!=null){android.view.DisplayCutout cutout=insets.getDisplayCutout();left=Math.max(left,cutout.getSafeInsetLeft());right=Math.max(right,cutout.getSafeInsetRight());top=Math.max(top,cutout.getSafeInsetTop());}
             View controller=view.findViewById(androidx.media3.ui.R.id.exo_controller);if(controller!=null)controller.setPadding(left,0,right,insets.getSystemWindowInsetBottom());
@@ -104,11 +105,22 @@ public final class PlayerActivity extends Activity {
             return insets;
         });applyPlayerLayout();
     }
+    private void installGestureLayer(){
+        final android.media.AudioManager audio=(android.media.AudioManager)getSystemService(AUDIO_SERVICE);gestureLayer=new View(this);gestureLayer.setContentDescription("Player gestures: double tap to seek; swipe left for brightness or right for volume");gestureLayer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);FrameLayout.LayoutParams zone=new FrameLayout.LayoutParams(-1,-1);root.addView(gestureLayer,zone);unlock=Ui.chip(this,"Unlock controls");unlock.setContentDescription("Unlock player touch controls");FrameLayout.LayoutParams key=new FrameLayout.LayoutParams(-2,Ui.dp(this,56),Gravity.TOP|Gravity.END);key.topMargin=Ui.dp(this,24);key.rightMargin=Ui.dp(this,20);root.addView(unlock,key);unlock.setVisibility(View.GONE);unlock.setOnClickListener(v->{touchLocked=false;unlock.setVisibility(View.GONE);view.showController();gestureLayer.setVisibility(View.GONE);updateChrome();});
+        GestureDetector detector=new GestureDetector(this,new GestureDetector.SimpleOnGestureListener(){float initialBrightness;int initialVolume;boolean moved;public boolean onDown(android.view.MotionEvent e){moved=false;float b=getWindow().getAttributes().screenBrightness;initialBrightness=b<0?.5f:b;initialVolume=audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);return true;}public boolean onSingleTapConfirmed(android.view.MotionEvent e){if(!touchLocked)view.showController();return true;}public boolean onDoubleTap(android.view.MotionEvent e){if(!touchLocked&&player!=null){long seek=player.getCurrentPosition()+(e.getX()<gestureLayer.getWidth()/2f?-10000:10000);player.seekTo(Math.max(0,Math.min(player.getDuration()>0?player.getDuration():Long.MAX_VALUE,seek)));}return true;}public boolean onScroll(android.view.MotionEvent start,android.view.MotionEvent end,float dx,float dy){if(touchLocked||start==null)return true;float delta=(start.getY()-end.getY())/Math.max(1,gestureLayer.getHeight());if(Math.abs(delta)<.04f&&!moved)return true;moved=true;if(start.getX()<gestureLayer.getWidth()/2f){android.view.WindowManager.LayoutParams lp=getWindow().getAttributes();lp.screenBrightness=Math.max(.05f,Math.min(1f,initialBrightness+delta));getWindow().setAttributes(lp);}else{int max=audio.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC,Math.max(0,Math.min(max,initialVolume+Math.round(delta*max))),0);}return true;}});gestureLayer.setOnTouchListener((v,event)->detector.onTouchEvent(event));gestureLayer.setVisibility(controlsVisible?View.GONE:View.VISIBLE);
+    }
+    private void sleepMenu(){ActionSheet.show(this,"Sleep timer",new String[]{"Off","15 minutes","30 minutes","60 minutes","At the end of this episode"},index->{handler.removeCallbacks(sleepAction);sleepDeadline=0;sleepAtEnd=index==4;if(index>0&&index<4){long delay=new long[]{0,15,30,60}[index]*60000;sleepDeadline=android.os.SystemClock.elapsedRealtime()+delay;handler.postDelayed(sleepAction,delay);}Toast.makeText(this,index==0?"Sleep timer off":index==4?"Will stop at the end of this episode":"Sleep timer set",Toast.LENGTH_SHORT).show();});}
+    private void captionAppearance(){ActionSheet.show(this,"Caption appearance",new String[]{"Standard","Large","Extra large","White on black","Yellow on black"},index->{androidx.media3.ui.SubtitleView captions=view.getSubtitleView();if(captions==null)return;android.content.SharedPreferences.Editor edit=getSharedPreferences("settings",0).edit();if(index<3)edit.putInt("captionSize",index);else edit.putInt("captionStyle",index);edit.apply();applyCaptionAppearance();});}
+    private void applyCaptionAppearance(){androidx.media3.ui.SubtitleView captions=view.getSubtitleView();if(captions==null)return;captions.setApplyEmbeddedStyles(false);int size=getSharedPreferences("settings",0).getInt("captionSize",0),style=getSharedPreferences("settings",0).getInt("captionStyle",3);captions.setFractionalTextSize(new float[]{.0533f,.068f,.083f}[Math.max(0,Math.min(2,size))]);captions.setStyle(new androidx.media3.ui.CaptionStyleCompat(style==4?android.graphics.Color.YELLOW:android.graphics.Color.WHITE,android.graphics.Color.BLACK,android.graphics.Color.TRANSPARENT,androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_OUTLINE,android.graphics.Color.BLACK,null));}
+    private void nextCountdown(){if(nextPrompt!=null&&nextPrompt.isShowing())return;nextPrompt=new android.app.Dialog(this);LinearLayout panel=Ui.column(this);panel.setPadding(Ui.dp(this,24),Ui.dp(this,20),Ui.dp(this,24),Ui.dp(this,20));TextView countdown=Ui.text(this,"Next episode in 10 seconds",22,Ui.INK);panel.addView(countdown);nextTicks=new Runnable(){int seconds=10;public void run(){if(nextPrompt==null||!nextPrompt.isShowing())return;countdown.setText("Next episode in "+seconds+" seconds");if(seconds-->0)handler.postDelayed(this,1000);}};Button now=Ui.primary(this,"Play now"),cancel=Ui.quiet(this,"Cancel");panel.addView(now);panel.addView(cancel);now.setOnClickListener(v->{nextPrompt.dismiss();if(started)resolveSource(selectedType(),1);});cancel.setOnClickListener(v->nextPrompt.dismiss());nextPrompt.setContentView(panel);nextPrompt.setOnDismissListener(v->{handler.removeCallbacks(nextAction);if(nextTicks!=null)handler.removeCallbacks(nextTicks);});nextPrompt.show();handler.post(nextTicks);handler.postDelayed(nextAction,10000);}
     private String sourceName(){if(offlineId!=null)return "Offline";if(request==null)return "Version";return request.sources.get(Math.max(0,Math.min(sourceIndex,request.sources.size()-1))).label;}
     private void applySizing(){int[] modes={androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL};sizing=Math.max(0,Math.min(2,sizing));view.setResizeMode(modes[sizing]);cropVideo=sizing==1;}
     private void playbackOptions(){
         view.showController();List<String> labels=new ArrayList<>();List<Runnable> actions=new ArrayList<>();
         labels.add("Speed · "+speed+"×");actions.add(()->ActionSheet.show(this,"Playback speed",new String[]{"0.75×","1× · Normal","1.25×","1.5×","2×"},index->{speed=new float[]{.75f,1f,1.25f,1.5f,2f}[index];if(player!=null)player.setPlaybackSpeed(speed);}));
+        labels.add("Lock touch controls");actions.add(()->{touchLocked=true;view.hideController();header.setVisibility(View.GONE);gestureLayer.setVisibility(View.VISIBLE);unlock.setVisibility(View.VISIBLE);});
+        labels.add("Sleep timer");actions.add(()->sleepMenu());
+        labels.add("Caption appearance");actions.add(()->captionAppearance());
         labels.add("Video quality");actions.add(()->chooseTracks(C.TRACK_TYPE_VIDEO));
         if(player!=null&&player.getCurrentTracks().isTypeSupported(C.TRACK_TYPE_TEXT)){labels.add("Captions");actions.add(()->chooseTracks(C.TRACK_TYPE_TEXT));}
         if(offlineId==null){labels.add("Download this episode");actions.add(()->DownloadWorker.start(this,getIntent().getStringExtra("playback"),getIntent().getStringExtra("poster")));}
@@ -120,9 +132,9 @@ public final class PlayerActivity extends Activity {
         resolver.execute(()->{try{JSONObject detail=CatalogBackend.get(this,getIntent().getStringExtra("provider")).detail(getIntent().getStringExtra("vodId"),selectedType(),getIntent().getStringExtra("kind"));JSONArray episodes=detail.getJSONArray("vod_collection");String[] names=new String[episodes.length()];for(int i=0;i<names.length;i++){String name=episodes.getJSONObject(i).optString("title");names[i]=name.isEmpty()||name.matches("[0-9. ]+")?"Episode "+(i+1):name;}runOnUiThread(()->{if(isFinishing()||isDestroyed())return;resolving=false;status.setText("");ActionSheet.show(this,"Episodes",names,index->{try{openListedEpisode(detail,episodes.getJSONObject(index));}catch(Exception e){status.setText("This episode could not be opened");}});});}catch(Exception e){runOnUiThread(()->{resolving=false;status.setText("Episodes could not load. Try again.");});}});
     }
     private void openListedEpisode(JSONObject detail,JSONObject episode){
-        if(resolving)return;resolving=true;status.setText("Opening episode…");String provider=getIntent().getStringExtra("provider"),type=selectedType();resolver.execute(()->{try{String json=CatalogBackend.get(this,provider).playbackJson(detail,episode,sourceName());PlaybackRequest replacement=PlaybackJson.parseInternal(json);String key=EpisodeSelection.key(episode);String variants=detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString();runOnUiThread(()->completeResolution(replacement,json,type,key,variants,1));}catch(Exception e){runOnUiThread(()->{resolving=false;status.setText("This episode could not open. Current playback is preserved.");});}});
+        if(resolving)return;resolving=true;status.setText("Opening episode…");String provider=getIntent().getStringExtra("provider"),type=selectedType();resolver.execute(()->{try{String json=CatalogBackend.get(this,provider).playbackJson(detail,episode,sourceName());PlaybackRequest replacement=PlaybackJson.parseInternal(json);String key=EpisodeSelection.key(episode);String variants=detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString();runOnUiThread(()->{getIntent().putExtra("hasNextEpisode",EpisodeAvailability.hasNext(detail,episode));completeResolution(replacement,json,type,key,variants,1);});}catch(Exception e){runOnUiThread(()->{resolving=false;status.setText("This episode could not open. Current playback is preserved.");});}});
     }
-    private void updateChrome(){
+    private void updateChrome(){if(gestureLayer!=null)gestureLayer.setVisibility(!isMini()&&(touchLocked||!controlsVisible)?View.VISIBLE:View.GONE);if(unlock!=null)unlock.setVisibility(!isMini()&&touchLocked?View.VISIBLE:View.GONE);if(touchLocked&&header!=null){header.setVisibility(View.GONE);footer.setVisibility(View.GONE);return;}
         if(header==null||footer==null)return;
         boolean visible=controlsVisible&&!isMini();header.setVisibility(visible?View.VISIBLE:View.GONE);
         footer.setVisibility(visible&&status.length()>0?View.VISIBLE:View.GONE);
@@ -171,7 +183,7 @@ public final class PlayerActivity extends Activity {
                 if(options!=null)for(int i=0;i<options.length();i++){JSONObject o=options.getJSONObject(i);if(o.optString("type").equals(type))label=o.optString("type_name",type);}
                 String json=backend.playbackJson(detail,episode,label);PlaybackRequest replacement=PlaybackJson.parseInternal(json);
                 String variants=options==null?"[]":options.toString();
-                runOnUiThread(()->completeResolution(replacement,json,type,nextCollection,variants,episodeOffset));
+                runOnUiThread(()->{getIntent().putExtra("hasNextEpisode",EpisodeAvailability.hasNext(detail,episode));completeResolution(replacement,json,type,nextCollection,variants,episodeOffset);});
             }catch(Exception|LinkageError e){runOnUiThread(()->{
                 if(!isDestroyed() && !isFinishing()){
                     resolving=false;
@@ -185,7 +197,7 @@ public final class PlayerActivity extends Activity {
     void completeResolution(PlaybackRequest replacement,String json,String type,String collection,String variants,int offset) {
         if(isDestroyed() || isFinishing())return;
         resolving=false;release();request=replacement;sourceIndex=0;
-        if(offset!=0){position=getSharedPreferences("resume",MODE_PRIVATE).getLong(request.contentId,0);playWhenReady=true;}
+        if(offset!=0){position=app.veyra.ProfileStore.prefs(this,"resume").getLong(request.contentId,0);playWhenReady=true;}
         if(trackPreferences!=null)trackPreferences=trackPreferences.buildUpon().clearOverrides().build();
         titleView.setText(request.title);sourceButton.setText(sourceName());
         getIntent().putExtra("playback",json).putExtra("audioType",type).putExtra("collection",collection).putExtra("variants",variants);
@@ -194,7 +206,7 @@ public final class PlayerActivity extends Activity {
     private void chooseSource() {
         try{JSONArray connections=new JSONArray(getIntent().getStringExtra("connections"));if(connections.length()>1){ActionSheet.show(this,"Playback source",new String[]{"Original / Dub / available versions","Change connection"},i->{if(i==0)chooseVersion();else{String[] labels=new String[connections.length()];for(int n=0;n<labels.length;n++)labels[n]="Connection "+(n+1)+(connections.optJSONObject(n).optString("provider").equals(getIntent().getStringExtra("provider"))?" · current":"");ActionSheet.show(this,"Available connections",labels,index->switchConnection(connections.optJSONObject(index)));}});return;}}catch(Exception ignored){}chooseVersion();
     }
-    private void switchConnection(JSONObject choice){if(resolving||choice==null)return;resolving=true;status.setText("Opening connection…");String provider=choice.optString("provider"),id=choice.optString("id"),kind=getIntent().getStringExtra("kind");resolver.execute(()->{try{CatalogBackend backend=CatalogBackend.get(this,provider);JSONObject detail=backend.detail(id,"0",kind);JSONObject episode=EpisodeSelection.select(detail.getJSONArray("vod_collection"),getIntent().getStringExtra("collection"),0);String json=backend.playbackJson(detail,episode,"Selected version");PlaybackRequest replacement=PlaybackJson.parseInternal(json);String episodeKey=EpisodeSelection.key(episode);runOnUiThread(()->{if(isDestroyed()||isFinishing())return;getIntent().putExtra("provider",provider).putExtra("vodId",id);completeResolution(replacement,json,"0",episodeKey,detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString(),0);});}catch(Exception e){runOnUiThread(()->{if(!isDestroyed()){resolving=false;status.setText("This connection could not open the episode. Current playback is preserved.");}});}});}
+    private void switchConnection(JSONObject choice){if(resolving||choice==null)return;resolving=true;status.setText("Opening connection…");String provider=choice.optString("provider"),id=choice.optString("id"),kind=getIntent().getStringExtra("kind");resolver.execute(()->{try{CatalogBackend backend=CatalogBackend.get(this,provider);JSONObject detail=backend.detail(id,"0",kind);JSONObject episode=EpisodeSelection.select(detail.getJSONArray("vod_collection"),getIntent().getStringExtra("collection"),0);String json=backend.playbackJson(detail,episode,"Selected version");PlaybackRequest replacement=PlaybackJson.parseInternal(json);String episodeKey=EpisodeSelection.key(episode);runOnUiThread(()->{if(isDestroyed()||isFinishing())return;getIntent().putExtra("hasNextEpisode",EpisodeAvailability.hasNext(detail,episode));getIntent().putExtra("provider",provider).putExtra("vodId",id);completeResolution(replacement,json,"0",episodeKey,detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString(),0);});}catch(Exception e){runOnUiThread(()->{if(!isDestroyed()){resolving=false;status.setText("This connection could not open the episode. Current playback is preserved.");}});}});}
     private void chooseVersion() {
         if(getIntent().hasExtra("vodId")) {
             try {JSONArray variants=new JSONArray(getIntent().getStringExtra("variants"));
@@ -235,10 +247,11 @@ public final class PlayerActivity extends Activity {
         player.setHandleAudioBecomingNoisy(true);
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int state) {
-                handler.removeCallbacks(delayedBuffer);view.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);if(state==Player.STATE_BUFFERING)handler.postDelayed(delayedBuffer,800);status.setText(state==Player.STATE_ENDED?"Playback finished":"");
+                if(state==Player.STATE_READY){recovery.setVisibility(View.GONE);view.setControllerShowTimeoutMs(3000);}handler.removeCallbacks(delayedBuffer);view.setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER);if(state==Player.STATE_BUFFERING)handler.postDelayed(delayedBuffer,800);status.setText(state==Player.STATE_ENDED?"Playback finished":"");
                 syncSession(); updatePip();
+                if(state==Player.STATE_ENDED&&sleepAtEnd){sleepAtEnd=false;player.pause();return;}
                 if(state==Player.STATE_ENDED && getIntent().hasExtra("vodId") && getSharedPreferences("settings",MODE_PRIVATE).getBoolean("autoplay",false)) {
-                    remember();resolveSource(selectedType(),1);
+                    remember();if(sleepAtEnd){sleepAtEnd=false;player.pause();}else if(getIntent().getBooleanExtra("hasNextEpisode",false))nextCountdown();
                 }
             }
             @Override public void onIsPlayingChanged(boolean playing) { view.setKeepScreenOn(playing); syncSession(); updatePip(); }
@@ -246,7 +259,7 @@ public final class PlayerActivity extends Activity {
             @Override public void onVideoSizeChanged(VideoSize size) { updatePip(); }
             @Override public void onPlaybackParametersChanged(PlaybackParameters params) { speed=params.speed;if(getSharedPreferences("settings",MODE_PRIVATE).getBoolean("rememberSpeed",true))getSharedPreferences("settings",MODE_PRIVATE).edit().putFloat("speed",speed).apply();syncSession(); }
             @Override public void onPlayerError(PlaybackException error) {
-                status.setText(offlineId!=null?"This offline copy could not play. Delete it and download the title again.":"This stream could not play. It may have expired, lost its connection or require an unsupported format. Open Playback options to reconnect."); syncSession(); updatePip();
+                recovery.setVisibility(View.VISIBLE);view.setControllerShowTimeoutMs(0);view.showController();status.setText(offlineId!=null?"This offline copy could not play. Delete it and download the title again.":"This stream could not play. It may have expired, lost its connection or require an unsupported format. Retry playback or switch version below."); syncSession(); updatePip();
             }
         });
         List<MediaItem.SubtitleConfiguration> captions=new ArrayList<>();
@@ -314,7 +327,8 @@ public final class PlayerActivity extends Activity {
     private void remember() {
         if(player==null || request==null)return;
         long current=player.getPlaybackState()==Player.STATE_ENDED?0:Math.max(0,player.getCurrentPosition());
-        android.content.SharedPreferences prefs=getSharedPreferences("resume",MODE_PRIVATE);
+        if(ProfileStore.prefs(this,"privacy").getBoolean("pauseHistory",false))return;
+        android.content.SharedPreferences prefs=app.veyra.ProfileStore.prefs(this,"resume");
         android.content.SharedPreferences.Editor e=prefs.edit();
         if(prefs.getAll().size()>200)e.clear();
         e.putLong(request.contentId,current).apply();
@@ -330,10 +344,10 @@ public final class PlayerActivity extends Activity {
     }
     @Override protected void onStart() { super.onStart(); started=true; startPlayer(); applyPlayerLayout(); }
     // PiP pauses the Activity, but keeps it visible: release only when it stops.
-    @Override protected void onStop() { started=false; release(); super.onStop(); }
-    @Override protected void onDestroy() { resolver.shutdownNow(); release(); super.onDestroy(); }
+    @Override protected void onStop() { started=false;if(nextPrompt!=null)nextPrompt.dismiss();handler.removeCallbacks(nextAction);release(); super.onStop(); }
+    @Override protected void onDestroy() { handler.removeCallbacks(sleepAction);handler.removeCallbacks(nextAction);resolver.shutdownNow(); release(); super.onDestroy(); }
     @Override protected void onSaveInstanceState(Bundle saved) {
-        saved.putInt("sizing",sizing);saved.putBoolean("cropVideo",cropVideo);saved.putString("playback",getIntent().getStringExtra("playback"));
+        saved.putLong("sleepDeadline",sleepDeadline);saved.putBoolean("sleepAtEnd",sleepAtEnd);saved.putInt("sizing",sizing);saved.putBoolean("cropVideo",cropVideo);saved.putString("playback",getIntent().getStringExtra("playback"));
         saved.putInt("source",sourceIndex); saved.putLong("position",player==null?position:player.getCurrentPosition());
         saved.putBoolean("playing",player==null?playWhenReady:player.getPlayWhenReady()); saved.putFloat("speed",speed); super.onSaveInstanceState(saved);
     }

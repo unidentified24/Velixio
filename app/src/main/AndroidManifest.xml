@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
@@ -13,11 +14,14 @@
         <activity android:name=".PlayerActivity" android:exported="false" android:supportsPictureInPicture="true" android:resizeableActivity="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation" />
         <service android:name=".DownloadWorker" android:exported="false" android:foregroundServiceType="dataSync" />
         <activity android:name=".DownloadsActivity" android:exported="false" />
+        <activity android:name=".CollectionsActivity" android:exported="false" />
+        <activity android:name=".WhatsNewActivity" android:exported="false" />
         <activity android:name=".UpdatesActivity" android:exported="false" />
         <service android:name=".BackupJob" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
         <provider android:name="androidx.core.content.FileProvider" android:authorities="app.veyra.updates" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths" /></provider>
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true" android:theme="@style/Theme.Velixio.Launch">
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
