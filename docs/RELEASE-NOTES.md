@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.1.0-rc2 — queue and Android platform features
+- Add a persisted sequential queue with pause/resume/retry/reordering and safe fresh-stream resolution. Retain partial data when the stream resource identity is unchanged.
+- Add metadata-based search filters and explicit genre/history recommendation preferences.
+- Add resume widget and privacy control, Continue Watching shortcut, Android TV launcher/focus support and wide-window title columns.
+- Add followed-series checks/notifications and conditional trailer previews from explicit catalog metadata.
+- Add external SRT/WebVTT timing, additional caption styles, session audio effects/night mode, offline-resource checks and active watch-time statistics.
+- Keep same native runtime/package/signing identity and preserve completed downloads. See ANDROID-EXPANSION.md for limitations and pending receiver/device work.
+
+
 ## 1.1.0-rc1 — Android feature development
 - Add local metadata profiles while preserving the original profile's library and keeping playback pinned to its starting profile.
 - Add collections, ratings, notes, watched controls, explicit discovery feedback and per-profile Home shelf visibility/order. Include personal records in validated metadata backups.

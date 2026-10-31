@@ -1,6 +1,15 @@
 # Verification
 
-## Current development checkpoint: 1.1.0-rc1
+## Current development checkpoint: 1.1.0-rc2
+- Debug APK assembly and device-test compilation passed; 112 JVM/lifecycle tests passed.
+- Android debug lint: zero errors and 69 warnings.
+- Packaged signature, package/version, native binding, companion asset and all eight native-library integrity checks passed.
+- New coverage includes queue ordering/recovery/retry identity, retained HLS segments after interrupted download, cache-only travel checks with missing segments, combined metadata filters, scoped recommendation feedback, caption timing/video-byte bypass, followed-series backup isolation, widget privacy, TV focus, watch-time privacy/backup merging, profile-return behavior and queue UI-to-service wiring.
+- Physical-device streaming, changing signed URLs, foreground-service timing, Wi-Fi transitions, reminders, widgets, caption sync, audio effects, Android TV, folding screens and accessibility remain unverified. The tests do not prove live content completeness or Play Protect acceptance.
+
+Direct receiver casting remains pending; Android screen-mirroring settings are available. Catalog trailers and episode notices depend on supplied metadata. See ANDROID-EXPANSION.md for precise feature limits.
+
+## Previous development checkpoint: 1.1.0-rc1
 - Debug APK assembly, device-test compilation and 84 JVM/lifecycle tests passed.
 - Android debug lint: zero errors and 59 warnings.
 - Packaged signature, installation package/version, native bindings, companion asset and all eight native-library integrity checks passed.
@@ -33,3 +42,4 @@ Additional automated coverage verifies Fit/Fill/Stretch sizing, phone/tablet/wid
 New regressions cover completed-download navigation to cache-only playback, transfer-tab restoration, direct picture-size controls without stock settings, and recommendation exclusions without fallback resurrection.
 
 The Continue Watching regression verifies portrait aspect ratio, FIT_CENTER artwork, visible progress, remaining time, exact episode resume and unclipped shelf height in comfortable and compact layouts.
+

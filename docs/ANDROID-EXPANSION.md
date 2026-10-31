@@ -1,52 +1,46 @@
-# Android expansion
+# Android expansion — 1.1.0-rc2
 
-This is the first development increment for the requested feature set, not completion of the entire roadmap. Cross-device accounts/sync and the iPhone website are deferred at the owner's request. Source changes are being prepared on a development branch; existing public releases are not replaced automatically.
+This development branch now contains two implementation increments. Device acceptance is still pending. Online accounts, cross-device sync and the iPhone website remain deferred at the owner's request. Releases are uploaded by the owner; this work does not publish a GitHub Release.
 
-## Implemented in the first increment
+## Implemented behavior
 
-| Request | Current behavior / limits |
+| Area | Current behavior |
 | --- | --- |
-| Update popup | Version, bounded release notes, asset size, Update and Remind me tomorrow. Automatic checks remain once daily while the app is used. |
-| What's new | Dedicated screen shown once per new installed version, also available in Settings. |
-| Storage manager | Separately measures offline videos, other app files, temporary cache, runtime files, external files and update packages. Cleanup removes only expired updater APKs. Completed downloads and native runtime files are protected. |
-| Wi-Fi / download limit | Optional Wi-Fi requirement and 2–32 GB total download budget, checked before and during transfers. A transfer stops when the policy is exceeded; this is not a resumable queue yet. |
-| Backup status | Existing status/failure page retained. Backups now bind to the profile selected during folder setup. Manual exports use the current profile. This does not back up every profile at once. |
-| Personal profiles | Up to eight local profiles. Separate saved titles, history, resume positions, searches, collections, feedback and Home layout. Default profile retains original storage. Playback stays pinned to the profile that started it. Appearance and downloaded videos remain shared. Profiles are not authenticated accounts or a privacy lock. |
-| Recommendations | Explicit Not interested removes a title from Home discovery. Existing rating/year selection remains; a learned genre recommendation model is still pending. |
-| Collections | Create named collections, add titles from their detail page, open titles and remove entries. Personal collections, ratings and notes are validated and included in metadata backups. |
-| Player gestures | Double tap left/right to seek 10 seconds; vertical swipe left for window brightness or right for media volume. Gestures operate while controls are hidden. |
-| Control lock | Touch lock with an accessible unlock button; hidden in PiP. |
-| Sleep timer | 15/30/60 minutes or end of episode; timer survives Activity recreation. |
-| Episode countdown | Ten-second countdown with Play now / Cancel, only when metadata confirms a next episode. Cancels when the player stops. |
-| Captions | Standard/large/extra-large and white/yellow on black. Timing offsets and more styles remain pending. |
-| Home layout | Per-profile show/hide and shelf ordering, plus featured visibility. |
-| Playback recovery | Direct retry and version switching on player errors, with controls kept visible. |
-| Notifications | Update-prompt preference, private download title notices and link to Android notification controls. Foreground download notification remains required by Android. Episode reminder controls await the reminder feature. |
-| Accessibility | Larger app labels, higher contrast secondary text, reduced launch motion, existing Android font scaling and control labels. Physical TalkBack/large-font acceptance remains necessary. |
-| Offline entry | When no Internet-capable network is present and completed downloads exist, launch Downloads directly. Existing cache-only playback remains. |
-| Search | Debounced title results while typing, with submitted searches retained. Dedicated genre/year/rating/language filters remain pending. |
-| Watched controls | Mark watched/unwatched, clear matching resume entries, remove individual Continue Watching cards. |
-| Personal ratings | Store 0–10 rating and a note up to 500 characters per title/profile. |
-| Launcher shortcuts | Search and Downloads shortcuts. |
-| Viewing statistics | Saved progress minutes, retained completed history, manually watched count, saved titles and collections. Does not claim to measure total watch time. |
-| Privacy | Pause history/resume recording per profile and hide titles in download notifications. |
-| Feedback | Reviewable text report, optional displayed app/Android/device details, then Android's chooser. No background upload. |
+| Updates | Version, bounded release notes and download size, Update / Remind me tomorrow; daily automatic checks while used; verified package/signature/checksum installation flow. |
+| What's new | Dedicated page shown once per installed version and available in Settings. |
+| Storage | Breakdown for downloads, app files, cache, runtime and updater packages; cleanup restricted to expired updater APKs. Runtime files and completed downloads are protected. |
+| Download policy | Optional Wi-Fi requirement, total storage budget and per-title safety limit. Blocked jobs wait until resumed under eligible conditions. |
+| Download queue | Up to 50 pending jobs, sequential transfers, pause/resume/retry, earlier/later ordering, cancellation and deletion. Queue metadata survives process restart. Old interrupted jobs become paused. |
+| Resuming media | Catalog jobs resolve normal signed streams from title/episode/version identity. Partial cache is retained and reused when resource URLs are unchanged. If a server token, proxy port or resource URL changes, the partial cache is safely discarded and that transfer restarts. This avoids treating temporary proxy URLs as permanent identities. |
+| Backups | Existing status/failure page retained. Automatic jobs use the profile selected during folder setup; manual exports use the current profile. Collections, reviews, watched/hidden flags, followed-series metadata and tracked watch time are allowlisted. Imports retain a newer watch-time total. |
+| Local profiles | Separate saved titles, history, progress, searches, collections, reviews, recommendations and Home layout. Default profile keeps original data. Playback stays pinned to its starting profile. Appearance and downloaded videos remain shared. Profiles are not authenticated accounts or privacy locks. |
+| Recommendations | Explicit genre preferences, saved-title genres and viewing-history avoidance influence ordering where metadata exists. Not interested applies to known editions of the selected grouped title. No fabricated popularity or AI-learning claim. |
+| Collections and reviews | Named collections, title opening/removal, personal ratings and notes, watched/unwatched controls and individual Continue Watching removal. |
+| Player | Gestures, touch lock, sleep timer, verified next-episode countdown with Play now / Cancel, direct retry/version recovery, existing PiP and Fit/Fill/Stretch controls. |
+| Captions | Size and contrast/style/font options. External SRT/WebVTT timing can move by 500 ms up to ±10 seconds. Embedded and TTML timestamp adjustment is not supported. Timing transforms only caption resources, not video bytes. |
+| Home | Per-profile shelf visibility/order and featured visibility. |
+| Notifications/privacy | Update prompts, followed-series notices, title hiding for downloads/episode notices/widget, Android notification settings and private viewing. Foreground download notification remains required by Android. |
+| Accessibility | Larger text, higher contrast, reduced launch motion, existing font scaling and labels. Physical TalkBack/large-font acceptance remains necessary. |
+| Offline startup | Opens completed downloads when offline. Playback uses a cache-only source with no network fallback. |
+| Search | Debounced results, recent submitted searches, year/rating/genre/language and Movies & series/Shorts filters. Filtering applies to each supplied results page; missing metadata cannot match an active filter. Pure film-versus-series filtering is available through the existing browse sections, not inferred from missing search metadata. |
+| Series following | Follow multi-episode titles, inspect/check/unfollow them, and receive optional notices when the selected version's listed episode count increases. Android schedules checks roughly every six hours; up to 20 titles are checked per run, rotating larger libraries. Failures retain previous counts. Not a server push service or a guarantee of release timing. |
+| Trailers | An in-app preview action appears only for a valid explicit HTTPS `trailer_url` supplied by the catalog. There is no separately configured trailer provider; the catalog may supply none. |
+| TV | Optional Android TV launcher entry/banner, focus outlines, larger cards, D-pad control reveal and wide layouts. Runtime support still requires a compatible ARM device or working translation. Physical TV/remote playback remains unverified. |
+| Tablets/foldables | Existing responsive browsing plus artwork/details columns on wide windows. Narrow windows return to a single column. No hinge-specific posture integration is claimed. |
+| Shortcuts/widget | Search, Downloads and Continue Watching launcher shortcuts, plus a resume widget with profile/title and optional title privacy. Widget refresh is throttled and also follows profile changes. |
+| Viewing statistics | Active playback time from this version onward, excluding pauses/buffering/trailers/private viewing, plus saved progress, completed/manual-watched counts and collections. Historical watch time is not fabricated from seek positions. |
+| Travel check | Re-walks a completed download's resource graph with no network upstream and reports missing resources. This does not validate codecs, content checksums or future decoder compatibility; try airplane-mode playback before travel. |
+| Audio | Original sound, dialogue EQ, gentle boost and Android 9+ night-mode dynamic-range compression where the device supports session effects. Default is original sound. This is not a full LUFS normalization pipeline. |
+| Feedback | Reviewable text report with optional displayed device details, then Android's chooser. No background upload. |
 
-## Still to build
+## Remaining requirements and limitations
 
-1. Durable download queue with pause, resume, retry, reordering and fresh stream resolution. Signed/local proxy URLs must not be treated as permanent queue identities.
-2. Full search filters and improved preference-driven recommendations.
-3. More subtitle styles and timing offsets.
-4. New-episode following/reminders, subject to reliable catalog availability data.
-5. Licensed trailers and compatible TV casting. The current localhost-only streaming proxy cannot be sent directly to a TV.
-6. Android TV layout, remote focus navigation, tablet/foldable-specific layouts and device verification.
-7. Home-screen widget.
-8. Travel verification of complete, readable offline cache resources.
-9. Audio dialogue/normalization controls after decoder/device compatibility checks.
-10. All-profile backup/restore, broader notification controls and refined profile management.
-
-The website will require a browser-compatible streaming endpoint or authorized gateway; the existing native Android proxy cannot run in Safari. No credentials or streaming runtime binaries will be placed in web source.
+- Direct Chromecast/receiver playback is not implemented. The current player exposes a localhost-only stream. The provided Screen mirroring action opens Android's system controls; it is not direct casting. A receiver-reachable authenticated stream or gateway is needed for direct casting.
+- Hinge-aware foldable postures, more complete tablet/TV navigation, remote/device acceptance and true loudness normalization need additional work.
+- All-profile backup bundles and export of Home/search/discovery/caption-timing preferences are not included. Current backup scope is documented in VELIXIO-DATA.md.
+- Trailer coverage and episode-reminder reliability depend on actual catalog metadata. No unsupported content or release dates are invented.
+- Cross-device sync, accounts and the iPhone website are deferred.
 
 ## Acceptance
 
-Automated checks and package integrity are recorded in VERIFICATION.md. Real-device playback, gesture feel, TV/casting, Wi-Fi transitions, storage measurements and document-provider behavior must be reported separately. No claim is made that every requested feature is finished or that Play Protect accepts the build.
+Automated checks and packaged native identity/library integrity are recorded in VERIFICATION.md. Live playback, pause/resume across changing signed streams, Wi-Fi transitions, notifications, widgets, caption sync, audio output, Android TV, folding screens and accessibility need physical-device checks. No Play Protect verdict is established.

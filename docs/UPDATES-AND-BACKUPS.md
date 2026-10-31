@@ -26,3 +26,6 @@ Play Protect acceptance cannot be guaranteed. This app does not request SMS acce
 Tags may be plain (1.0.2), prefixed (v1.0.2 or VelixioStream1.0.2), or numbered revisions (1.0.2-1, 1.0.2-2, 1.0.2-3). The order is 1.0.2 < 1.0.2-1 < 1.0.2-2 < 1.0.3. Earlier rc versions remain supported and sort before their final version. If a tag has no version, the release title is checked. Keep the tag aligned with the APK version; Android still requires an increased versionCode.
 
 Older installed updaters still need plain semantic tags such as v1.0.2 to receive this fix.
+
+## Android expansion build
+The development branch currently builds 1.1.0-rc2, versionCode 21. The next candidate must use a higher code and a newer version (for example 1.1.0-rc3/code 22). Stable installations ignore release candidates. No release asset is published by this change. Download jobs and their private URLs/headers are not backup data.

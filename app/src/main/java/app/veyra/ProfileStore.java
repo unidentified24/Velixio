@@ -10,6 +10,6 @@ public final class ProfileStore {
  public static SharedPreferences prefs(Context c,String name){String id=id(c);return c.getSharedPreferences(id.equals("default")?name:"profile-"+id+"-"+name,0);}
  public static LinkedHashMap<String,String> list(Context c){LinkedHashMap<String,String> names=new LinkedHashMap<>();names.put("default","My profile");List<String> ids=new ArrayList<>(c.getSharedPreferences("profiles",0).getAll().keySet());Collections.sort(ids);for(String key:ids)if(key.startsWith("name:")&&valid(key.substring(5)))names.put(key.substring(5),c.getSharedPreferences("profiles",0).getString(key,"Profile"));return names;}
  public static String create(Context c,String name){name=name.trim();if(name.isEmpty()||name.length()>32||list(c).size()>=8)throw new IllegalArgumentException("Use 1–32 characters; up to eight profiles");String id=UUID.randomUUID().toString();c.getSharedPreferences("profiles",0).edit().putString("name:"+id,name).apply();return id;}
- public static void select(Context c,String id){if(!list(c).containsKey(id))throw new IllegalArgumentException("Unknown profile");c.getSharedPreferences("profiles",0).edit().putString("active",id).apply();}
+ public static void select(Context c,String id){if(!list(c).containsKey(id))throw new IllegalArgumentException("Unknown profile");c.getSharedPreferences("profiles",0).edit().putString("active",id).apply();ResumeWidget.refresh(c,true);}
  public static String name(Context c){return list(c).get(id(c));}
 }

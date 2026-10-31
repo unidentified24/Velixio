@@ -15,8 +15,10 @@ final class Ui {
         MUTED=a.getSharedPreferences("settings",0).getBoolean("highContrast",false)?0xffe0e5ec:0xffa5adb5;
         a.getWindow().setStatusBarColor(BG);a.getWindow().setNavigationBarColor(BG);a.getWindow().setBackgroundDrawable(new ColorDrawable(BG));
     }
-    static int columns(Activity a){int width=a.getResources().getConfiguration().screenWidthDp;int card=a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?110:145;return Math.max(2,Math.min(8,(width-32)/card));}
-    static int posterWidth(Activity a){return a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?112:136;}
+    static boolean tv(Activity a){return (a.getResources().getConfiguration().uiMode&android.content.res.Configuration.UI_MODE_TYPE_MASK)==android.content.res.Configuration.UI_MODE_TYPE_TELEVISION;}
+    static void focus(Activity a,View v){v.setFocusable(true);v.setOnFocusChangeListener((item,on)->{if(tv(a)){GradientDrawable outline=new GradientDrawable();outline.setColor(Color.TRANSPARENT);outline.setCornerRadius(dp(a,12));outline.setStroke(dp(a,3),on?ACCENT:Color.TRANSPARENT);item.setForeground(outline);}});}
+    static int columns(Activity a){int width=a.getResources().getConfiguration().screenWidthDp;int card=tv(a)?190:a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?110:145;return Math.max(2,Math.min(8,(width-32)/card));}
+    static int posterWidth(Activity a){return tv(a)?180:a.getSharedPreferences("settings",0).getBoolean("compactPosters",false)?112:136;}
     static Button icon(Activity a,String kind,String description){Button b=quiet(a,"");Glyph icon=new Glyph(kind);icon.setBounds(0,0,dp(a,24),dp(a,24));b.setCompoundDrawables(null,icon,null,null);b.setGravity(Gravity.CENTER);b.setPadding(dp(a,12),dp(a,12),dp(a,12),dp(a,12));b.setContentDescription(description);if(android.os.Build.VERSION.SDK_INT>=26)b.setTooltipText(description);return b;}
     static int dp(Activity a,int value){return Math.round(value*a.getResources().getDisplayMetrics().density);}
     static LinearLayout column(Activity a){LinearLayout v=new LinearLayout(a);v.setOrientation(LinearLayout.VERTICAL);v.setBackgroundColor(BG);return v;}
@@ -29,7 +31,7 @@ final class Ui {
         Button b=new Button(a);b.setText(title);b.setAllCaps(false);b.setTextSize(13);b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));b.setIncludeFontPadding(false);
         // Reset both TextView and View theme minimums. Keep a 48dp touch target around a smaller visible surface.
         b.setMinWidth(0);b.setMinimumWidth(0);b.setMinHeight(dp(a,48));b.setMinimumHeight(dp(a,48));
-        b.setPadding(dp(a,14),dp(a,6),dp(a,14),dp(a,6));b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setStateListAnimator(null);b.setElevation(0);return b;
+        b.setPadding(dp(a,14),dp(a,6),dp(a,14),dp(a,6));b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);focus(a,b);b.setStateListAnimator(null);b.setElevation(0);return b;
     }
     static Button button(Activity a,String title){return chip(a,title);}
     static Button primary(Activity a,String title){
@@ -47,7 +49,7 @@ final class Ui {
         Button b=control(a,title);b.setTextColor(INK);b.setBackground(new RippleDrawable(ColorStateList.valueOf(0x22ffffff),null,shape(a,Color.WHITE,8)));b.setPadding(dp(a,14),dp(a,6),dp(a,14),dp(a,6));return b;
     }
     static LinearLayout card(Activity a){LinearLayout card=column(a);card.setBackground(shape(a,SURFACE,14));card.setClipToOutline(true);int p=dp(a,12);card.setPadding(p,p,p,p);return card;}
-    static void insets(Activity a,View view,int padding){int maxWidth=(a instanceof SettingsActivity||a instanceof UpdatesActivity)?760:1100;int p=Math.max(dp(a,padding),(a.getResources().getDisplayMetrics().widthPixels-dp(a,maxWidth))/2);view.setOnApplyWindowInsetsListener((v,insets)->{
+    static void insets(Activity a,View view,int padding){int maxWidth=(a instanceof SettingsActivity||a instanceof UpdatesActivity)?760:1100;int p=Math.max(dp(a,tv(a)?48:padding),(a.getResources().getDisplayMetrics().widthPixels-dp(a,maxWidth))/2);view.setOnApplyWindowInsetsListener((v,insets)->{
         v.setPadding(p+insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),p+insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;
     });view.requestApplyInsets();}
 }

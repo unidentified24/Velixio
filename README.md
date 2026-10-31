@@ -5,7 +5,7 @@
 An Android streaming app with artwork-led discovery, a fullscreen player and a library you can take with you.
 
 ## Android expansion (development)
-The 1.1.0-rc1 development build adds local profiles, collections, personal feedback, Home shelf controls, richer update notices, storage controls and player tools. This is the first increment of the larger requested feature set. See the [implementation status and remaining work](docs/ANDROID-EXPANSION.md); online accounts, sync and the iPhone website are deferred.
+The 1.1.0-rc2 development build adds a durable download queue, metadata filters and genre preferences, a resume widget, TV focus controls, wide title pages, series following, external-caption timing, optional audio effects and active watch-time tracking. It retains the profiles, collections and player tools from rc1. See the [implementation status and remaining work](docs/ANDROID-EXPANSION.md); online accounts, sync and the iPhone website are deferred.
 
 ## Downloads
 [Download APKs from GitHub Releases](https://github.com/unidentified24/Velixio/releases).

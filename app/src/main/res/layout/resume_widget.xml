@@ -1,0 +1,8 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical" android:padding="16dp" android:background="#101524" android:contentDescription="Velixio · open Continue watching">
+ <ImageView android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/velixio_logo" android:contentDescription="Velixio"/>
+ <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="12dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="VELIXIO" android:textColor="#B6BEFF" android:textSize="11sp"/>
+  <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="17sp" android:maxLines="2" android:ellipsize="end"/>
+  <TextView android:id="@+id/widget_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#B8C1D1" android:textSize="12sp"/>
+ </LinearLayout>
+</LinearLayout>

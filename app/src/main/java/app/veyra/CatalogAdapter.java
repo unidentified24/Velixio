@@ -69,7 +69,7 @@ final class CatalogAdapter extends RecyclerView.Adapter<CatalogAdapter.Holder> {
         if(h.progress!=null){JSONObject record=item.optJSONObject("_resume");long watched=record==null?0:Math.max(0,record.optLong("position")),duration=record==null?0:record.optLong("duration");h.progress.setProgress(duration>0?(int)Math.min(1000,watched*1000.0/duration):0);h.progress.setVisibility(duration>0?View.VISIBLE:View.INVISIBLE);h.meta.setText(duration>watched?Math.max(1,(long)Math.ceil((duration-watched)/60000.0))+" min left":watched/60000+" min watched");h.resume.setContentDescription("Resume "+item.optString("vod_name"));h.resume.setOnClickListener(v->open.open(item));}
         posters.load(owner,h.image,item.optString("vod_pic"));
         h.itemView.setOnLongClickListener(v->{ActionSheet.show(owner,item.optString("vod_name"),new String[]{"Hide from Home recommendations","Keep showing this title"},index->{owner.getSharedPreferences("hidden-titles",0).edit().putBoolean(LibraryStore.key(item),index==0).apply();Toast.makeText(owner,"Your preference will apply when Home refreshes",Toast.LENGTH_SHORT).show();});return true;});
-        h.itemView.setContentDescription("View "+item.optString("vod_name"));h.itemView.setOnClickListener(v->open.open(item));
+        Ui.focus(owner,h.itemView);h.itemView.setContentDescription("View "+item.optString("vod_name"));h.itemView.setOnClickListener(v->open.open(item));
         if(h.play!=null)h.play.setOnClickListener(v->open.open(item));
         if(h.save!=null){updateSave(h,item);h.save.setOnClickListener(v->{LibraryStore.toggle(owner,item);updateSave(h,item);Toast.makeText(owner,LibraryStore.saved(owner,item)?"Added to My list":"Removed from My list",Toast.LENGTH_SHORT).show();});}
     }

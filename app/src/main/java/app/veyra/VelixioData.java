@@ -5,7 +5,7 @@ import java.util.*;
 /** Portable, allowlisted metadata. No sessions, server profiles or media URLs. */
 final class VelixioData {
  static final int LIMIT=2*1024*1024;
- private static final String[] FAVORITE={"id","vod_name","vod_year","vod_douban_score","_provider","_kind"};
+ private static final String[] FAVORITE={"id","vod_name","vod_year","vod_class","vod_lang","vod_douban_score","_provider","_kind"};
  private static final String[] HISTORY={"provider","kind","id","collection","audioType","title"};
  static JSONObject export(Context c)throws Exception{
   JSONObject out=new JSONObject().put("format","velixiodata").put("version",1).put("exportedAt",System.currentTimeMillis());
@@ -45,7 +45,7 @@ final class VelixioData {
  }
  static void restore(Context c,JSONObject safe)throws Exception{
   // Called only after full validation and the import summary. Merge title lists, retain newer history.
-  JSONObject mergedPersonal=PersonalStore.export(c);if(safe.has("personal")){JSONObject imported=safe.getJSONObject("personal");Iterator<String> personalKeys=imported.keys();while(personalKeys.hasNext()){String key=personalKeys.next();mergedPersonal.put(key,imported.get(key));}}mergedPersonal=PersonalStore.validate(mergedPersonal);
+  JSONObject mergedPersonal=PersonalStore.export(c);if(safe.has("personal")){JSONObject imported=safe.getJSONObject("personal");Iterator<String> personalKeys=imported.keys();while(personalKeys.hasNext()){String key=personalKeys.next();if(key.equals("stat:watchMs"))mergedPersonal.put(key,Math.max(mergedPersonal.optLong(key,0),imported.getLong(key)));else mergedPersonal.put(key,imported.get(key));}}mergedPersonal=PersonalStore.validate(mergedPersonal);
   SharedPreferences fav=app.veyra.ProfileStore.prefs(c,"favorites"),hist=app.veyra.ProfileStore.prefs(c,"watch-history");SharedPreferences.Editor f=fav.edit(),h=hist.edit();JSONArray favorites=safe.getJSONArray("favorites"),history=safe.getJSONArray("history");
   Set<String> identities=new HashSet<>(fav.getAll().keySet());for(int i=0;i<favorites.length();i++)identities.add(LibraryStore.key(favorites.getJSONObject(i)));if(identities.size()>1000)throw new Exception("Merged list exceeds 1000 titles");
   for(int i=0;i<favorites.length();i++){JSONObject o=favorites.getJSONObject(i);f.putString(LibraryStore.key(o),o.toString());}

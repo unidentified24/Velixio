@@ -23,7 +23,7 @@ public final class WatchHistory {
                 for(Map.Entry<String,?> entry:prefs.getAll().entrySet())try{long updated=new JSONObject((String)entry.getValue()).optLong("updatedAt");if(updated<time){time=updated;oldest=entry.getKey();}}catch(Exception ignored){edit.remove(entry.getKey());}
                 if(oldest!=null)edit.remove(oldest);
             }
-            edit.apply();
+            edit.apply();app.veyra.ResumeWidget.refresh(context,false);
         }catch(JSONException ignored){}
     }
     public static List<JSONObject> list(Context context) {
@@ -31,5 +31,5 @@ public final class WatchHistory {
         for(Object value:app.veyra.ProfileStore.prefs(context,"watch-history").getAll().values())try{JSONObject record=new JSONObject((String)value);if(!record.optBoolean("completed") && record.optLong("position")>0)records.add(record);}catch(Exception ignored){}
         records.sort((a,b)->Long.compare(b.optLong("updatedAt"),a.optLong("updatedAt")));return records;
     }
-    public static void clear(Context context){app.veyra.ProfileStore.prefs(context,"watch-history").edit().clear().apply();app.veyra.ProfileStore.prefs(context,"resume").edit().clear().apply();}
+    public static void clear(Context context){app.veyra.ProfileStore.prefs(context,"watch-history").edit().clear().apply();app.veyra.ProfileStore.prefs(context,"resume").edit().clear().apply();app.veyra.ResumeWidget.refresh(context,true);}
 }

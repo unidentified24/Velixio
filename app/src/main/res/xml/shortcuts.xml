@@ -1,4 +1,5 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
  <shortcut android:shortcutId="search" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_search"><intent android:action="android.intent.action.VIEW" android:targetPackage="app.veyra" android:targetClass="app.veyra.MainActivity"><extra android:name="destination" android:value="search"/></intent></shortcut>
  <shortcut android:shortcutId="downloads" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_downloads"><intent android:action="android.intent.action.VIEW" android:targetPackage="app.veyra" android:targetClass="app.veyra.DownloadsActivity"/></shortcut>
+ <shortcut android:shortcutId="continue" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_continue"><intent android:action="android.intent.action.VIEW" android:targetPackage="app.veyra" android:targetClass="app.veyra.MainActivity"><extra android:name="destination" android:value="continue"/></intent></shortcut>
 </shortcuts>
