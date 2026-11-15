@@ -1,0 +1,9 @@
+package app.veyra;
+import android.media.audiofx.*;
+/** Optional effects attach only to this player's audio session. Unsupported devices retain original sound. */
+final class PlayerAudio {
+ private Equalizer equalizer;private LoudnessEnhancer loudness;private AudioEffect dynamics;
+ boolean attach(int session,int mode){close();if(mode==0)return true;if(session<=0)return false;try{if(mode==1){equalizer=new Equalizer(0,session);short[] range=equalizer.getBandLevelRange();for(short band=0;band<equalizer.getNumberOfBands();band++){int frequency=equalizer.getCenterFreq(band);short level=(short)(frequency>=1000000&&frequency<=4000000?Math.min(range[1],300):0);equalizer.setBandLevel(band,level);}equalizer.setEnabled(true);}else if(mode==3){if(android.os.Build.VERSION.SDK_INT<28)return false;dynamics=Api28.night(session);}else if(mode==2){loudness=new LoudnessEnhancer(session);loudness.setTargetGain(200);loudness.setEnabled(true);}else return false;return true;}catch(RuntimeException e){close();return false;}}
+ @androidx.annotation.RequiresApi(28) private static final class Api28 {static AudioEffect night(int session){DynamicsProcessing.Config config=new DynamicsProcessing.Config.Builder(DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,2,false,0,true,1,false,0,true).build();DynamicsProcessing effect=new DynamicsProcessing(0,session,config);try{DynamicsProcessing.Mbc compressor=new DynamicsProcessing.Mbc(true,true,1);compressor.setBand(0,new DynamicsProcessing.MbcBand(true,22000,10,200,3,-18,6,-80,1,0,3));effect.setMbcAllChannelsTo(compressor);effect.setEnabled(true);return effect;}catch(RuntimeException e){effect.release();throw e;}}}
+ void close(){if(equalizer!=null){equalizer.release();equalizer=null;}if(loudness!=null){loudness.release();loudness=null;}if(dynamics!=null){dynamics.release();dynamics=null;}}
+}

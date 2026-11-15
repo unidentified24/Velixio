@@ -20,66 +20,215 @@ public final class MainActivity extends Activity {
     private ScrollView detailScroll;private View brandChrome,dockChrome;
     private androidx.recyclerview.widget.RecyclerView collection;
     private EditText search;
-    private Button retry;
+    private View searchBar,searchTools;
+    private Button sourceStatus,hdFilter,languageFilter,yearFilter;
+    private CombinedCatalog.SearchPage latestSearch;
+    private Button clearSearch;
+    private Button retry,filtersButton;
+    private String appearanceProfile;
     private int appearanceTheme;
     private boolean appearanceCompact;
     private final List<NavItem> navigationItems=new ArrayList<>();
     private Runnable repeatRequest;
     private String channel="", query="", screen="catalog";
     private int page=1, generation;
+    private boolean moreSearch,searchAppending;
     private JSONObject currentDetail;
     private JSONArray connectionChoices=new JSONArray();
     private CombinedCatalog catalog;
     private JSONArray channelOptions=new JSONArray();
     private String selectedProvider="current", selectedKind="movie";
-    private Future<?> pending;
+    private boolean recordSearch;private Future<?> pending;private final android.os.Handler suggestionHandler=new android.os.Handler(android.os.Looper.getMainLooper());private final Runnable suggest=()->{if(!isFinishing()&&search.hasFocus()&&screen.equals("search")){String term=search.getText().toString().trim();if(term.length()>=2){query=term;page=1;loadCatalog();}}};
     private final LinkedHashMap<String,List<JSONObject>> browseCache=new LinkedHashMap<>();
     private final Map<String,Long> browseTimes=new HashMap<>();
     private final Map<String,String> browseWarnings=new HashMap<>();
+    boolean isSearching(){return screen.equals("search");}
     private String browseKey(){return channel+"|"+page+"|"+query;}
     private void cacheBrowse(String key,List<JSONObject> titles,String warning){if(!browseCache.containsKey(key)&&browseCache.size()>=8){String first=browseCache.keySet().iterator().next();browseCache.remove(first);browseTimes.remove(first);browseWarnings.remove(first);}browseCache.put(key,new ArrayList<>(titles));browseTimes.put(key,android.os.SystemClock.elapsedRealtime());browseWarnings.put(key,warning);}
 
     private String restoreScreen="",restoreId="",restoreType="0",returnScreen="catalog";
     private android.os.Parcelable returnScroll;
     @Override public void onCreate(Bundle saved) {
-        super.onCreate(saved);Ui.configure(this);appearanceTheme=getSharedPreferences("settings",0).getInt("theme",0);appearanceCompact=getSharedPreferences("settings",0).getBoolean("compactPosters",false);
-        if(saved==null){android.content.SharedPreferences discovery=getSharedPreferences("discovery",0);discovery.edit().putLong("visit",discovery.getLong("visit",0)+1).apply();}
+        super.onCreate(saved);appearanceProfile=ProfileStore.id(this);Ui.configure(this);appearanceTheme=getSharedPreferences("settings",0).getInt("theme",0);appearanceCompact=getSharedPreferences("settings",0).getBoolean("compactPosters",false);
+        if(saved==null){android.content.SharedPreferences discovery=app.veyra.ProfileStore.prefs(this,"discovery");discovery.edit().putLong("visit",discovery.getLong("visit",0)+1).apply();}
         if(saved!=null){
             channel=saved.getString("channel","");query=saved.getString("query","");page=saved.getInt("page",1);
             returnScreen=saved.getString("returnScreen","catalog");returnScroll=saved.getParcelable("returnScroll");restoreScreen=saved.getString("screen","");restoreId=saved.getString("detailId","");restoreType=saved.getString("audioType","0");
             selectedProvider=saved.getString("provider","current");selectedKind=saved.getString("kind","movie");
         }
+        if(saved==null&&getIntent().hasExtra("openTitle"))try{JSONObject incoming=new JSONObject(getIntent().getStringExtra("openTitle"));restoreScreen="detail";restoreId=incoming.getString("id");selectedProvider=incoming.optString("_provider","current");selectedKind=incoming.optString("_kind","movie");}catch(Exception ignored){}
         catalog=new CombinedCatalog(this);
         root=Ui.column(this);
-        LinearLayout brand=new LinearLayout(this);BrandView logo=new BrandView(this);brand.addView(logo,new LinearLayout.LayoutParams(Ui.dp(this,156),Ui.dp(this,48)));View brandSpace=new View(this);brand.addView(brandSpace,new LinearLayout.LayoutParams(0,1,1));
-        Button menu=Ui.icon(this,"menu","Open navigation menu");menu.setContentDescription("Open navigation menu");menu.setOnClickListener(v->options());brand.addView(menu);root.addView(brand);brandChrome=brand;
-        search=new EditText(this);search.setSingleLine(true);search.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});search.setHint("Search movies, series and short dramas");search.setTextColor(Ui.INK);search.setHintTextColor(Ui.MUTED);search.setText(query);search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        search.setOnEditorActionListener((v,action,event)->{if(action==EditorInfo.IME_ACTION_SEARCH){query=search.getText().toString().trim();page=1;((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();loadCatalog();return true;}return false;});root.addView(search);search.setVisibility(View.GONE);
+        LinearLayout brand=new LinearLayout(this);brand.setGravity(Gravity.CENTER_VERTICAL);BrandView logo=new BrandView(this);brand.addView(logo,new LinearLayout.LayoutParams(Ui.dp(this,132),Ui.dp(this,52)));View brandSpace=new View(this);brand.addView(brandSpace,new LinearLayout.LayoutParams(0,1,1));
+        Button viewingOverview=Ui.icon(this,"insights","Viewing overview");viewingOverview.setOnClickListener(v->startActivityForResult(new Intent(this,SettingsActivity.class).putExtra("page","stats"),50));brand.addView(viewingOverview,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
+        Button menu=Ui.icon(this,"menu","Open navigation menu");menu.setContentDescription("Open navigation menu");menu.setOnClickListener(v->options());brand.addView(menu,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));root.addView(brand);brandChrome=brand;
+        search=new EditText(this);search.setTypeface(Ui.type(this,R.font.arimo_regular));search.setSingleLine(true);search.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(256)});search.setHint("Search titles, cast or alternate names");search.setTextColor(Ui.INK);search.setHintTextColor(Ui.MUTED);search.setText(query);search.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
+        search.setOnEditorActionListener((v,action,event)->{if(action!=EditorInfo.IME_ACTION_SEARCH)return false;submitSearch();return true;});
+        LinearLayout field=new LinearLayout(this);
+        field.setGravity(Gravity.CENTER_VERTICAL);
+        android.graphics.drawable.GradientDrawable face=new android.graphics.drawable.GradientDrawable();
+        face.setColor(Ui.SURFACE);face.setCornerRadius(Ui.dp(this,16));field.setBackground(face);
+        Button submit=Ui.icon(this,"search","Search titles");
+        submit.setOnClickListener(v->submitSearch());
+        field.addView(submit,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
+        search.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        search.setPadding(0,0,0,0);search.setMinimumHeight(Ui.dp(this,48));
+        field.addView(search,new LinearLayout.LayoutParams(0,-2,1));
+        clearSearch=Ui.icon(this,"close","Clear search");
+        clearSearch.setVisibility(search.length()==0?View.INVISIBLE:View.VISIBLE);
+        clearSearch.setOnClickListener(v->{search.setText("");query="";page=1;openSearch();search.requestFocus();});
+        field.addView(clearSearch,new LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)));
+        searchBar=field;root.addView(searchBar);searchBar.setVisibility(View.GONE);
+        filtersButton=Ui.playerButton(this,"settings","Filters",true);
+        filtersButton.setOnClickListener(v->startActivityForResult(new Intent(this,SearchFiltersActivity.class),61));
+                LinearLayout tools=new LinearLayout(this);
+        languageFilter=Ui.chip(this,"Language");
+        languageFilter.setOnClickListener(v->quickSearchFilter(true));
+        yearFilter=Ui.chip(this,"Year");
+        yearFilter.setOnClickListener(v->quickSearchFilter(false));
+        hdFilter=Ui.chip(this,"All qualities");
+        hdFilter.setOnClickListener(v->ActionSheet.show(this,"Video quality","",new String[]{"All qualities","HD only","CAM / TS / TC"},SearchFilters.qualityMode(this),index->{SearchFilters.qualityMode(this,index);refreshSearchFilters();}));
+        sourceStatus=Ui.chip(this,"Sources");
+        sourceStatus.setOnClickListener(v->showSearchSources());
+        for(Button button:new Button[]{languageFilter,yearFilter,hdFilter,filtersButton,sourceStatus})tools.addView(button);
+        HorizontalScrollView strip=new HorizontalScrollView(this);
+        strip.setHorizontalScrollBarEnabled(false);strip.addView(tools);
+        searchTools=strip;searchTools.setVisibility(View.GONE);root.addView(searchTools);
         HorizontalScrollView navigation=new HorizontalScrollView(this);tabs=new LinearLayout(this);navigation.addView(tabs);navigation.setHorizontalScrollBarEnabled(false);root.addView(navigation);
         status=Ui.text(this,"Connecting your library…",14,Ui.MUTED);status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);root.addView(status);retry=Ui.chip(this,"Try again");retry.setVisibility(View.GONE);retry.setOnClickListener(v->{if(repeatRequest!=null)repeatRequest.run();});root.addView(retry);
         FrameLayout body=new FrameLayout(this);detailScroll=new ScrollView(this);content=Ui.column(this);detailScroll.addView(content);body.addView(detailScroll);collection=new androidx.recyclerview.widget.RecyclerView(this);collection.setClipToPadding(false);collection.setItemAnimator(null);body.addView(collection,new FrameLayout.LayoutParams(-1,-1));root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout navigationBar=new LinearLayout(this);navigationBar.setPadding(0,Ui.dp(this,2),0,0);
-        for(String label:new String[]{"Home","Search","Continue","My list","Downloads"}){NavItem tab=new NavItem(this,label,navigationItems.size());navigationItems.add(tab);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{returnScroll=null;for(NavItem item:navigationItems)item.setActive(item==tab);if(label.equals("Home"))goHome();else if(label.equals("Search"))openSearch();else if(label.equals("Continue"))history();else if(label.equals("My list"))favorites();else startActivity(new Intent(this,DownloadsActivity.class));});}
-        android.graphics.drawable.GradientDrawable dock=new android.graphics.drawable.GradientDrawable();dock.setColor(Ui.SURFACE);dock.setCornerRadius(Ui.dp(this,28));navigationBar.setBackground(dock);LinearLayout.LayoutParams dockSpace=new LinearLayout.LayoutParams(-1,-2);dockSpace.setMargins(0,Ui.dp(this,8),0,Ui.dp(this,8));root.addView(navigationBar,dockSpace);dockChrome=navigationBar;setContentView(root);Ui.insets(this,root,16);
+        for(String label:new String[]{"Home","Search","Continue","My list","Downloads"}){NavItem tab=new NavItem(this,label,navigationItems.size());Ui.focus(this,tab);navigationItems.add(tab);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMargins(Ui.dp(this,3),0,Ui.dp(this,3),0);navigationBar.addView(tab,lp);tab.setOnClickListener(v->{if(label.equals("Downloads")){startActivity(new Intent(this,DownloadsActivity.class));return;}returnScroll=null;if(label.equals("Home"))goHome();else if(label.equals("Search"))openSearch();else if(label.equals("Continue"))history();else if(label.equals("My list"))favorites();});}
+        android.graphics.drawable.GradientDrawable dock=new android.graphics.drawable.GradientDrawable();dock.setColor(Ui.SURFACE);dock.setCornerRadius(Ui.dp(this,18));dock.setStroke(Ui.dp(this,1),(Ui.MUTED&0x00ffffff)|0x22000000);navigationBar.setBackground(dock);LinearLayout.LayoutParams dockSpace=new LinearLayout.LayoutParams(-1,-2);dockSpace.setMargins(0,Ui.dp(this,8),0,Ui.dp(this,8));root.addView(navigationBar,dockSpace);dockChrome=navigationBar;setContentView(root);Ui.insets(this,root,16);
         if(saved==null){List<JSONObject> cached=catalog.cachedHome();if(!cached.isEmpty()){renderTitles(cached);status.setText("Refreshing your library…");}else startupPlaceholder();}
         if(saved==null)showLaunchBrand();
+        search.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}public void afterTextChanged(android.text.Editable value){}public void onTextChanged(CharSequence text,int start,int before,int count){clearSearch.setVisibility(text.length()==0?View.INVISIBLE:View.VISIBLE);suggestionHandler.removeCallbacks(suggest);if(search.hasFocus()&&screen.equals("search"))suggestionHandler.postDelayed(suggest,500);}});
+        if(saved==null&&"search".equals(getIntent().getStringExtra("destination")))restoreScreen="search";if(saved==null&&"continue".equals(getIntent().getStringExtra("destination")))restoreScreen="history";
+        if(saved==null&&!ConnectionState.online(this)){for(JSONObject record:OfflineStore.list(this))if(record.optString("state").equals("complete")){startActivity(new Intent(this,DownloadsActivity.class));status.setText("You’re offline. Your downloads are ready.");repeatRequest=()->loadChannels();retry.setVisibility(View.VISIBLE);return;}}
         loadChannels();
     }
-    private void showLaunchBrand(){final FrameLayout decor=(FrameLayout)getWindow().getDecorView().findViewById(android.R.id.content);final LinearLayout splash=new LinearLayout(this);splash.setOrientation(LinearLayout.VERTICAL);splash.setGravity(Gravity.CENTER);splash.setBackgroundColor(Ui.BG);splash.setClickable(true);ImageView mark=new ImageView(this);mark.setImageResource(R.drawable.velixio_logo);mark.setContentDescription("Velixio logo");splash.addView(mark,new LinearLayout.LayoutParams(Ui.dp(this,112),Ui.dp(this,112)));TextView name=Ui.text(this,"Velixio",32,Ui.INK);name.setGravity(Gravity.CENTER);splash.addView(name);decor.addView(splash,new FrameLayout.LayoutParams(-1,-1));splash.postDelayed(()->{if(splash.getParent()==decor){splash.animate().alpha(0).setDuration(180).withEndAction(()->decor.removeView(splash)).start();}},1000);}
+    private void showLaunchBrand(){if(getSharedPreferences("settings",0).getBoolean("reduceMotion",false))return;final FrameLayout decor=(FrameLayout)getWindow().getDecorView().findViewById(android.R.id.content);final LinearLayout splash=new LinearLayout(this);splash.setOrientation(LinearLayout.VERTICAL);splash.setGravity(Gravity.CENTER);splash.setBackgroundColor(Ui.BG);splash.setClickable(true);ImageView mark=new ImageView(this);mark.setImageResource(R.drawable.velixio_logo);mark.setContentDescription("Velixio logo");splash.addView(mark,new LinearLayout.LayoutParams(Ui.dp(this,112),Ui.dp(this,112)));TextView name=Ui.text(this,"Velixio",32,Ui.INK);name.setGravity(Gravity.CENTER);splash.addView(name);decor.addView(splash,new FrameLayout.LayoutParams(-1,-1));splash.postDelayed(()->{if(splash.getParent()==decor){splash.animate().alpha(0).setDuration(180).withEndAction(()->decor.removeView(splash)).start();}},1000);}
     private void startupPlaceholder(){showContent();content.removeAllViews();content.addView(Ui.text(this,"Your next great watch",28,Ui.INK));content.addView(Ui.text(this,"Opening your collection…",14,Ui.MUTED));for(int n=0;n<3;n++){LinearLayout rail=new LinearLayout(this);for(int i=0;i<3;i++){View poster=new View(this);android.graphics.drawable.GradientDrawable shape=new android.graphics.drawable.GradientDrawable();shape.setColor(Ui.SURFACE);shape.setCornerRadius(Ui.dp(this,12));poster.setBackground(shape);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,Ui.dp(this,140),1);lp.setMargins(Ui.dp(this,4),Ui.dp(this,8),Ui.dp(this,4),Ui.dp(this,8));rail.addView(poster,lp);}content.addView(rail);}}
-    private void shell(boolean visible){if(brandChrome!=null)brandChrome.setVisibility(visible?View.VISIBLE:View.GONE);if(dockChrome!=null)dockChrome.setVisibility(visible?View.VISIBLE:View.GONE);}
+    private void shell(boolean visible){if(searchTools!=null)searchTools.setVisibility(visible&&screen.equals("search")?View.VISIBLE:View.GONE);if(brandChrome!=null)brandChrome.setVisibility(visible?View.VISIBLE:View.GONE);if(dockChrome!=null)dockChrome.setVisibility(visible?View.VISIBLE:View.GONE);}
     private void selectNavigation(int index){for(int i=0;i<navigationItems.size();i++)navigationItems.get(i).setActive(i==index);}
     private void hideKeyboard(){((android.view.inputmethod.InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(search.getWindowToken(),0);search.clearFocus();}
-    private void goHome(){shell(true);hideKeyboard();search.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;returnScroll=null;selectNavigation(0);loadCatalog();}
-    private void openSearch(){shell(true);
+    private void submitSearch(){
+        suggestionHandler.removeCallbacks(suggest);
+        query=search.getText().toString().trim();page=1;returnScroll=null;
+        if(query.isEmpty()){openSearch();return;}
+        recordSearch=true;hideKeyboard();loadCatalog();
+    }
+    private void updateSearchChips(){
+        SearchFilters.Criteria filters=SearchFilters.read(this);
+        languageFilter.setText(filters.language.isEmpty()?"Language":filters.language.substring(0,1).toUpperCase(Locale.ROOT)+filters.language.substring(1));
+        languageFilter.setSelected(!filters.language.isEmpty());
+        yearFilter.setText(filters.from>0&&filters.from==filters.to?String.valueOf(filters.from):"Year");
+        yearFilter.setSelected(filters.from>0||filters.to>0);
+        int quality=SearchFilters.qualityMode(this);hdFilter.setSelected(quality!=0);hdFilter.setText(new String[]{"All qualities","HD only","CAM / TS / TC"}[quality]);
+        sourceStatus.setVisibility(latestSearch==null?View.GONE:View.VISIBLE);
+        sourceStatus.setSelected(latestSearch!=null&&!latestSearch.warning.isEmpty());
+    }
+    private void refreshSearchFilters(){
+        updateSearchChips();
+        if(!query.isEmpty())loadSearch(query,false);
+    }
+    private void quickSearchFilter(boolean language){
+        SearchFilters.Criteria current=SearchFilters.read(this);
+        LinkedHashSet<String> values=new LinkedHashSet<>();
+        values.add(language?"Any language":"Any year");
+        if(language)Collections.addAll(values,"Hindi","Malayalam","Tamil","Telugu","English","Punjabi");
+        else if(latestSearch!=null){
+            TreeSet<Integer> years=new TreeSet<>(Comparator.reverseOrder());
+            for(JSONObject title:latestSearch.titles){
+                int year=CatalogDates.releaseYear(title);
+                if(year>=1888&&year<=2100)years.add(year);
+            }
+            for(Integer year:years)values.add(year.toString());
+        }
+        String[] options=values.toArray(new String[0]);
+        ActionSheet.show(this,language?"Audio language":"Release year",options,index->{
+            int year=language||index==0?0:Integer.parseInt(options[index]);
+            SearchFilters.save(this,new SearchFilters.Criteria(language?current.from:year,language?current.to:year,
+                current.rating,current.genre,language?(index==0?"":options[index]):current.language,current.kind));
+            refreshSearchFilters();
+        });
+    }
+    private void showSearchSources(){
+        CombinedCatalog.SearchPage result=latestSearch;
+        if(result==null)return;
+        StringBuilder summary=new StringBuilder("Matches across the pages checked");
+        result.sourceCounts().forEach((name,count)->summary.append("\n").append(name).append(" · ").append(count)
+            .append(result.failed.contains(name)?" · Incomplete":""));
+        if(!CatalogProviders.enabled(this,"bluesun"))summary.append("\nBlueSun · Gateway configuration missing");
+        else if(!result.sourceCounts().containsKey("BlueSun"))summary.append("\nBlueSun · 0").append(result.failed.contains("BlueSun")?" · Incomplete":"");
+        String[] actions=result.warning.isEmpty()?new String[]{"Done"}:new String[]{"Retry search","Done"};
+        ActionSheet.show(this,"Catalog sources",summary.toString(),actions,-1,index->{
+            if(index==0 && !result.warning.isEmpty())loadSearch(query,false);
+        });
+    }
+    private void showVersions(JSONObject detail,String provider,String kind){
+        String selected=detail.optString("audio_type","0");
+        JSONArray variants=detail.optJSONArray("audio_type_option"),episodes=detail.optJSONArray("vod_collection");
+        JSONObject first=episodes==null?null:episodes.optJSONObject(0);
+        String audio=CombinedCatalog.language(detail),quality=CombinedCatalog.quality(detail);
+        StringBuilder facts=new StringBuilder(CombinedCatalog.providerName(provider));
+        if(!audio.isEmpty())facts.append(" · ").append(audio);
+        if(!quality.isEmpty())facts.append(" · ").append(quality);
+        facts.append("\n").append(first!=null&&!first.optString("srt_url").isEmpty()
+            ?"First entry includes a caption file":"Check in-player captions after playback begins");
+        List<String> names=new ArrayList<>(),ids=new ArrayList<>();
+        List<JSONObject> alternatives=new ArrayList<>();
+        int checked=-1;
+        if(variants!=null)for(int i=0;i<variants.length();i++){
+            JSONObject entry=variants.optJSONObject(i);
+            if(entry==null||entry.optString("type").isEmpty())continue;
+            if(entry.optString("type").equals(selected))checked=names.size();
+            ids.add(entry.optString("type"));
+            names.add(entry.optString("type_name","Version "+(i+1)));
+        }
+        for(int i=0;i<connectionChoices.length();i++){
+            JSONObject option=connectionChoices.optJSONObject(i);
+            if(option==null)continue;
+            if(option.optString("provider").equals(provider)&&option.optString("id").equals(detail.optString("id"))
+                &&option.optString("audioType","0").equals(selected))continue;
+            alternatives.add(option);
+            names.add(CombinedCatalog.editionLabel(option));
+        }
+        if(names.isEmpty())names.add("Done");
+        ActionSheet.show(this,"Versions",facts.toString(),names.toArray(new String[0]),checked,index->{
+            if(index<ids.size()){
+                if(!ids.get(index).equals(selected))loadDetail(detail.optString("id"),ids.get(index),provider,kind);
+            }else if(index-ids.size()<alternatives.size()){
+                JSONObject option=alternatives.get(index-ids.size());
+                loadDetail(option.optString("id"),option.optString("audioType","0"),option.optString("provider"),kind,true);
+            }
+        });
+    }
+    private void appendRelatedTitles(JSONObject detail){
+        JSONArray related=detail.optJSONArray("related_titles");
+        if(related==null)return;
+        List<JSONObject> cards=new ArrayList<>();
+        for(int i=0;i<Math.min(related.length(),12);i++){
+            JSONObject entry=related.optJSONObject(i);
+            if(entry!=null&&!entry.optString("vod_name").isEmpty()&&!entry.optString("id").isEmpty())cards.add(entry);
+        }
+        if(cards.isEmpty())return;
+        content.addView(Ui.text(this,"Related titles",18,Ui.INK));
+        for(JSONObject entry:cards){
+            Button button=Ui.playerButton(this,"collections",entry.optString("vod_name"),true);
+            button.setOnClickListener(v->openEdition(entry,entry.optString("id")));
+            content.addView(button);
+        }
+    }
+    private void goHome(){shell(true);hideKeyboard();searchBar.setVisibility(View.GONE);query="";search.setText("");channel="discover";page=1;returnScroll=null;selectNavigation(0);loadCatalog();}
+    private void openSearch(){shell(true);searchAppending=false;latestSearch=null;updateSearchChips();
         generation++;if(pending!=null)pending.cancel(true);screen="search";currentDetail=null;retry.setVisibility(View.GONE);status.setVisibility(View.GONE);selectNavigation(1);
-        ((View)tabs.getParent()).setVisibility(View.GONE);search.setVisibility(View.VISIBLE);showContent();content.removeAllViews();
+        ((View)tabs.getParent()).setVisibility(View.GONE);searchBar.setVisibility(View.VISIBLE);searchTools.setVisibility(View.VISIBLE);showContent();content.removeAllViews();
         content.addView(Ui.text(this,"Find your next watch",26,Ui.INK));content.addView(Ui.text(this,"Search films, series and shorts",14,Ui.MUTED));
-        android.graphics.drawable.GradientDrawable searchFace=new android.graphics.drawable.GradientDrawable();searchFace.setColor(Ui.SURFACE);searchFace.setCornerRadius(Ui.dp(this,18));search.setBackground(searchFace);search.setPadding(Ui.dp(this,18),Ui.dp(this,14),Ui.dp(this,18),Ui.dp(this,14));
-        content.addView(Ui.text(this,"RECENT SEARCHES",11,Ui.ACCENT));String[] recent=getSharedPreferences("search-history",0).getString("terms","").split("\\n");for(String term:recent)if(!term.isEmpty()){Button recentTerm=Ui.quiet(this,term+"  ↗");recentTerm.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);recentTerm.setOnClickListener(v->{query=term;search.setText(term);page=1;loadCatalog();});content.addView(recentTerm,new LinearLayout.LayoutParams(-1,Ui.dp(this,48)));}Button clear=Ui.quiet(this,"Clear recent searches");clear.setOnClickListener(v->{getSharedPreferences("search-history",0).edit().remove("terms").apply();openSearch();});content.addView(clear);
+        String[] recent=app.veyra.ProfileStore.prefs(this,"search-history").getString("terms","").split("\\n");if(recent.length>0&&!recent[0].isEmpty())content.addView(Ui.text(this,"Recent searches",15,Ui.MUTED));for(String term:recent)if(!term.isEmpty()){Button recentTerm=Ui.playerButton(this,"history",term,true);recentTerm.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);recentTerm.setOnClickListener(v->{query=term;search.setText(term);page=1;loadCatalog();});content.addView(recentTerm,new LinearLayout.LayoutParams(-1,Ui.dp(this,48)));}Button clear=Ui.quiet(this,"Clear recent searches");clear.setOnClickListener(v->{app.veyra.ProfileStore.prefs(this,"search-history").edit().remove("terms").apply();openSearch();});if(recent.length>0&&!recent[0].isEmpty())content.addView(clear);
     }
     private void libraryTabs(){
-        selectNavigation(screen.equals("history")?2:3);hideKeyboard();search.setVisibility(View.GONE);((View)tabs.getParent()).setVisibility(View.VISIBLE);tabs.removeAllViews();
+        selectNavigation(screen.equals("history")?2:3);hideKeyboard();searchBar.setVisibility(View.GONE);((View)tabs.getParent()).setVisibility(View.VISIBLE);tabs.removeAllViews();
         ((View)tabs.getParent()).setVisibility(View.GONE);
     }
     private void backFromTitle(){if(returnScreen.equals("favorites"))favorites();else if(returnScreen.equals("history"))history();else loadCatalog();}
@@ -102,11 +251,11 @@ public final class MainActivity extends Activity {
         if(e instanceof IOException && e.getMessage()!=null && (e.getMessage().startsWith("The streaming") || e.getMessage().startsWith("The server") || e.getMessage().startsWith("Session expired")))return e.getMessage();
         return "This request could not complete. Please retry.";
     }
-    private void showError(String message) {
+    private void showError(String message) {searchAppending=false;
         status.setText(message);retry.setVisibility(View.VISIBLE);
         if(message.contains("(S")){
             long pageSize=0;try{pageSize=android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE);}catch(Exception ignored){}
-            String report=message+"\n\nVelixio 1.0.2 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
+            String report=message+"\n\nVelixio 1.1.0-rc2 · Android "+android.os.Build.VERSION.RELEASE+" (API "+android.os.Build.VERSION.SDK_INT+")\n"+android.os.Build.MODEL+" · "+android.text.TextUtils.join(", ",android.os.Build.SUPPORTED_ABIS)+" · page "+pageSize;
             new AlertDialog.Builder(this).setTitle("Playback couldn't start").setMessage(report).setPositiveButton("Close",null).setNeutralButton("Copy details",(dialog,which)->{
                 android.content.ClipboardManager clipboard=(android.content.ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Velixio playback diagnostics",report));
@@ -133,9 +282,11 @@ public final class MainActivity extends Activity {
     }
     private void loadCatalog() {
         status.setTextSize(14);
-        if(!query.isEmpty()){java.util.LinkedHashSet<String> terms=new java.util.LinkedHashSet<>();terms.add(query.replace("\n"," "));for(String old:getSharedPreferences("search-history",0).getString("terms","").split("\\n"))if(!old.isEmpty()&&terms.size()<6)terms.add(old);getSharedPreferences("search-history",0).edit().putString("terms",android.text.TextUtils.join("\n",terms)).apply();}
+        if(recordSearch&&PrivateViewing.active(this))recordSearch=false;
+        if(recordSearch&&!query.isEmpty()){recordSearch=false;java.util.LinkedHashSet<String> terms=new java.util.LinkedHashSet<>();terms.add(query.replace("\n"," "));for(String old:app.veyra.ProfileStore.prefs(this,"search-history").getString("terms","").split("\\n"))if(!old.isEmpty()&&terms.size()<6)terms.add(old);app.veyra.ProfileStore.prefs(this,"search-history").edit().putString("terms",android.text.TextUtils.join("\n",terms)).apply();}
         try{renderBrowseTabs();}catch(JSONException ignored){}
-        ((View)tabs.getParent()).setVisibility(query.isEmpty()?View.VISIBLE:View.GONE);screen=query.isEmpty()?"catalog":"search";search.setVisibility(query.isEmpty()?View.GONE:View.VISIBLE);selectNavigation(query.isEmpty()?0:1);currentDetail=null;String wantedQuery=query,wantedChannel=channel;int wantedPage=page;
+        ((View)tabs.getParent()).setVisibility(query.isEmpty()?View.VISIBLE:View.GONE);screen=query.isEmpty()?"catalog":"search";searchBar.setVisibility(query.isEmpty()?View.GONE:View.VISIBLE);selectNavigation(query.isEmpty()?0:1);searchTools.setVisibility(query.isEmpty()?View.GONE:View.VISIBLE);currentDetail=null;String wantedQuery=query,wantedChannel=channel;int wantedPage=page;
+        if(!wantedQuery.isEmpty()){loadSearch(wantedQuery,false);return;}
         if(wantedChannel.isEmpty()){loadChannels();return;}
         String key=browseKey();List<JSONObject> cached=browseCache.get(key);
         if(cached!=null&&android.os.SystemClock.elapsedRealtime()-browseTimes.get(key)<120000){generation++;if(pending!=null)pending.cancel(true);retry.setVisibility(View.GONE);content.removeAllViews();renderTitles(cached);String warning=browseWarnings.get(key);status.setText(warning.isEmpty()?(query.isEmpty()?"":"Results for “"+query+"”"):warning);status.setVisibility(status.length()==0?View.GONE:View.VISIBLE);return;}
@@ -149,21 +300,41 @@ public final class MainActivity extends Activity {
 
         });
     }
+    private void loadSearch(String term,boolean append) {
+        if(append&&searchAppending)return;
+        searchAppending=append;
+        int loadedPages=page; if(!append){latestSearch=null;updateSearchChips();}
+        int oldCount=(append&&collection.getAdapter()!=null)?collection.getAdapter().getItemCount()-1:0;
+        work(append?"Checking for more results.":"Searching catalogs.",()->catalog.search(term,loadedPages,append),value->{
+            CombinedCatalog.SearchPage result=(CombinedCatalog.SearchPage)value;
+            searchAppending=false;page=result.page;moreSearch=result.more;latestSearch=result;updateSearchChips();
+            List<JSONObject> filtered=SearchFilters.apply(this,result.titles);
+            String title=filtered.size()==1?"1 result":filtered.size()+" results";
+            String heading=title+" for "+term;
+            if(!result.warning.isEmpty())heading+="\n"+result.warning;
+            else if(filtered.isEmpty()&&SearchFilters.active(this))heading+="\nTry clearing filters or loading more results.";
+            else if(!moreSearch)heading+="\nNo additional matches in the pages checked.";
+            status.setText(heading);
+            status.setVisibility(View.VISIBLE);
+            renderTitles(result.titles);
+            if(append&&filtered.size()>oldCount&&oldCount>0)collection.scrollToPosition(Math.min(filtered.size()-1,oldCount));
+        });
+    }
     private void renderTitles(List<JSONObject> titles) {shell(true);
         detailScroll.setVisibility(View.GONE);collection.setVisibility(View.VISIBLE);
-        boolean browsing=screen.equals("catalog")||screen.equals("search");
+        boolean browsing=screen.equals("catalog")||screen.equals("search");boolean rawResults=!titles.isEmpty();if(screen.equals("search")){titles=SearchFilters.apply(this,titles);filtersButton.setText(SearchFilters.active(this)?"Filters · active":"Filters");}
         if(browsing && (channel.isEmpty()||channel.equals("discover")) && query.isEmpty() && page==1 && !titles.isEmpty()){
             collection.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
             collection.setAdapter(new HomeAdapter(this,posters,titles,item->{if(item.has("_resume"))resume(item.optJSONObject("_resume"));else openEdition(item,item.optString("id"));}));restoreBrowsePosition();return;
         }
         CatalogAdapter adapter=new CatalogAdapter(this,posters,titles,browsing&&query.isEmpty()&&page==1,
-            item->openEdition(item,item.optString("id")),browsing&&page>1?()->{page--;loadCatalog();}:null,
-            browsing&&!titles.isEmpty()?()->{page++;loadCatalog();}:null);
+            item->openEdition(item,item.optString("id")),screen.equals("catalog")&&page>1?()->{page--;loadCatalog();}:null,
+            screen.equals("search")?(moreSearch?()->loadSearch(query,true):null):browsing&&rawResults?()->{page++;loadCatalog();}:null);
         int columns=Ui.columns(this);
         androidx.recyclerview.widget.GridLayoutManager manager=new androidx.recyclerview.widget.GridLayoutManager(this,columns);
         manager.setSpanSizeLookup(new androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup(){public int getSpanSize(int position){return adapter.fullWidth(position)?columns:1;}});
         collection.setLayoutManager(manager);collection.setAdapter(adapter);if(returnScroll!=null)restoreBrowsePosition();else collection.scrollToPosition(0);
-        if(titles.isEmpty())status.setText(screen.equals("favorites")?"Save a title to start your collection.":"No titles found. Try another search.");
+        if(titles.isEmpty()&&!screen.equals("search"))status.setText(screen.equals("favorites")?"Save a title to start your collection.":"No matches on this page. Try the next page or adjust your filters.");
     }
     private void showContent(){collection.setVisibility(View.GONE);detailScroll.setVisibility(View.VISIBLE);detailScroll.scrollTo(0,0);}
     private void openEdition(JSONObject item,String id) {
@@ -178,7 +349,8 @@ public final class MainActivity extends Activity {
                 JSONObject choice=choices==null?null:choices.optJSONObject(i);
                 String provider=choice==null?item.optString("_provider","current"):choice.optString("provider","current");
                 String titleId=choice==null?id:choice.optString("id",id);
-                try{return new Object[]{CatalogBackend.get(this,provider).detail(titleId,"0",kind),provider};}
+                String audioType=choice==null?item.optString("audio_type","0"):choice.optString("audioType","0");
+                try{return new Object[]{app.veyra.data.CatalogProviders.get(this,provider).detail(titleId,audioType,kind),provider};}
                 catch(Exception e){failure=e;failures.add("Connection "+(i+1)+": "+errorMessage(e));}
             }
             if(failures.size()>1)throw new IOException("The streaming connections could not open this title.\n"+android.text.TextUtils.join("\n",failures));
@@ -187,71 +359,82 @@ public final class MainActivity extends Activity {
     }
 
     private void loadDetail(String id,String audioType,String provider,String kind) {
-        if(currentDetail!=null&&!id.equals(currentDetail.optString("id")))connectionChoices=new JSONArray();
-        work("Loading title and playback sources…",()->CatalogBackend.get(this,provider).detail(id,audioType,kind),value->{selectedProvider=provider;selectedKind=kind;showDetail((JSONObject)value);});
+        loadDetail(id,audioType,provider,kind,false);
+    }
+    private void loadDetail(String id,String audioType,String provider,String kind,boolean keepVersions) {
+        if(!keepVersions&&currentDetail!=null&&!id.equals(currentDetail.optString("id")))connectionChoices=new JSONArray();
+        work("Loading title and playback sources…",()->app.veyra.data.CatalogProviders.get(this,provider).detail(id,audioType,kind),value->{selectedProvider=provider;selectedKind=kind;showDetail((JSONObject)value);});
     }
     private void showDetail(JSONObject detail) throws Exception {
         showContent();shell(false);currentDetail=detail;final String provider=selectedProvider,kind=selectedKind;screen="detail";
-        content.removeAllViews();status.setVisibility(View.GONE);search.setVisibility(View.GONE);((View)tabs.getParent()).setVisibility(View.GONE);
+        content.removeAllViews();status.setVisibility(View.GONE);searchBar.setVisibility(View.GONE);((View)tabs.getParent()).setVisibility(View.GONE);
         Button back=Ui.quiet(this,"‹  Back");back.setOnClickListener(v->backFromTitle());content.addView(back,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));
         FrameLayout summary=new FrameLayout(this);ImageView art=new ImageView(this);art.setScaleType(ImageView.ScaleType.CENTER_CROP);summary.addView(art,new FrameLayout.LayoutParams(-1,-1));posters.load(this,art,detail.optString("vod_pic"));
         View shade=new View(this);shade.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,new int[]{(Ui.BG&0x00ffffff),((Ui.BG&0x00ffffff)|0xdd000000),Ui.BG}));summary.addView(shade,new FrameLayout.LayoutParams(-1,-1));
         LinearLayout titleBlock=Ui.column(this);titleBlock.setBackgroundColor(android.graphics.Color.TRANSPARENT);titleBlock.setPadding(Ui.dp(this,20),0,Ui.dp(this,20),Ui.dp(this,18));
-        titleBlock.addView(Ui.text(this,"VELIXIO / THE COLLECTION",10,Ui.ACCENT));TextView title=Ui.text(this,detail.optString("vod_name","Video"),34,Ui.INK);title.setTypeface(android.graphics.Typeface.create("sans-serif-condensed",android.graphics.Typeface.BOLD));title.setMaxLines(3);title.setEllipsize(android.text.TextUtils.TruncateAt.END);titleBlock.addView(title);
-        List<String> metadata=new ArrayList<>();for(String key:new String[]{"vod_year","vod_area","vod_douban_score"}){String value=detail.optString(key);if(!value.isEmpty()&&!value.equals("0"))metadata.add(value);}
+        TextView title=Ui.text(this,detail.optString("vod_name","Video"),34,Ui.INK);title.setTypeface(Ui.type(this,R.font.oswald_medium));title.setMaxLines(3);title.setEllipsize(android.text.TextUtils.TruncateAt.END);titleBlock.addView(title);String original=TitleMetadata.originalTitle(detail);if(!original.isEmpty())titleBlock.addView(Ui.text(this,original,16,Ui.MUTED));
+        List<String> metadata=new ArrayList<>();for(String key:new String[]{"vod_year","vod_area","vod_class","vod_lang","vod_douban_score"}){String value=detail.optString(key);if(!value.isEmpty()&&!value.equals("0"))metadata.add(value);}
         titleBlock.addView(Ui.text(this,android.text.TextUtils.join(" · ",metadata),12,Ui.INK));summary.addView(titleBlock,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));content.addView(summary,new LinearLayout.LayoutParams(-1,Ui.dp(this,Math.min(460,Math.max(320,getResources().getConfiguration().screenHeightDp/2)))));
         JSONArray audio=detail.optJSONArray("audio_type_option");String selected=detail.optString("audio_type","0"),label="Default";
         if(audio!=null)for(int i=0;i<audio.length();i++){JSONObject choice=audio.getJSONObject(i);if(choice.optString("type").equals(selected))label=choice.optString("type_name","Default");}
         final String sourceLabel=label;JSONArray episodes=detail.optJSONArray("vod_collection");
         LinearLayout actions=new LinearLayout(this);actions.setPadding(0,Ui.dp(this,12),0,Ui.dp(this,4));
-        if(episodes!=null&&episodes.length()>0){JSONObject first=episodes.getJSONObject(0);Button play=Ui.primary(this,"▶  Play");play.setOnClickListener(v->playEpisode(detail,first,sourceLabel,provider,kind));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,Ui.dp(this,48),1);lp.setMargins(0,0,Ui.dp(this,8),0);actions.addView(play,lp);}
+        if(episodes!=null&&episodes.length()>0){JSONObject first=episodes.getJSONObject(0);Button play=Ui.primary(this,"Play");play.setOnClickListener(v->playEpisode(detail,first,sourceLabel,provider,kind));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,Ui.dp(this,48),1);lp.setMargins(0,0,Ui.dp(this,8),0);actions.addView(play,lp);}
         Button save=Ui.chip(this,favoriteLabel(detail,provider,kind));save.setOnClickListener(v->{toggleFavorite(detail,provider,kind);save.setText(favoriteLabel(detail,provider,kind));});actions.addView(save,new LinearLayout.LayoutParams(0,Ui.dp(this,48),1));content.addView(actions);
+        Button personal=Ui.playerButton(this,"bookmark","Collections and rating",true);personal.setOnClickListener(v->personalActions(detail,provider,kind));content.addView(personal);
+        if(episodes!=null&&episodes.length()>1){Button follow=Ui.quiet(this,FollowStore.followed(this,provider,kind,detail.optString("id"))?"Following series ✓":"Follow series · episode reminders");follow.setOnClickListener(v->{try{boolean following=FollowStore.toggle(this,detail,provider,kind);follow.setText(following?"Following series ✓":"Follow series · episode reminders");if(following&&android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},82);}catch(Exception e){Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();}});content.addView(follow);}
+        String trailer=TrailerSource.url(detail);if(!trailer.isEmpty()){Button preview=Ui.playerButton(this,"play","Watch trailer",true);preview.setOnClickListener(v->openTrailer(detail,trailer));content.addView(preview);}
         String description=android.text.Html.fromHtml(detail.optString("vod_blurb"),android.text.Html.FROM_HTML_MODE_LEGACY).toString().trim();
         if(!description.isEmpty()){
             LinearLayout about=Ui.card(this);about.addView(Ui.text(this,"About this title",17,Ui.INK));TextView synopsis=Ui.text(this,description,14,Ui.MUTED);synopsis.setLineSpacing(Ui.dp(this,3),1);synopsis.setMaxLines(3);synopsis.setEllipsize(android.text.TextUtils.TruncateAt.END);about.addView(synopsis);Button more=Ui.quiet(this,"Show full synopsis  ▾");more.setOnClickListener(v->{boolean expanded=synopsis.getMaxLines()>3;synopsis.setMaxLines(expanded?3:Integer.MAX_VALUE);more.setText(expanded?"Show full synopsis  ▾":"Collapse synopsis  ▴");});about.addView(more);content.addView(about);
         }
         LinearLayout selectors=new LinearLayout(this);
-        if(audio!=null&&audio.length()>1){Button variant=Ui.chip(this,sourceLabel+"  ▾");variant.setContentDescription("Playback version: "+sourceLabel);
-            String[] names=new String[audio.length()],types=new String[audio.length()];int active=0;
-            for(int i=0;i<audio.length();i++){JSONObject choice=audio.getJSONObject(i);names[i]=choice.optString("type_name");types[i]=choice.optString("type");if(types[i].equals(selected))active=i;}
-            final int checked=active;variant.setOnClickListener(v->ActionSheet.show(this,"Playback version",names,index->loadDetail(detail.optString("id"),types[index],provider,kind)));selectors.addView(variant);}
+        Button version=Ui.playerButton(this,"audio","Versions",true);
+        version.setOnClickListener(v->showVersions(detail,provider,kind));
+        selectors.addView(version);
         JSONArray seasons=detail.optJSONArray("series_info");
         if(seasons!=null&&seasons.length()>1){List<String> names=new ArrayList<>(),ids=new ArrayList<>();for(int i=0;i<seasons.length();i++){JSONObject season=seasons.getJSONObject(i);if(!season.optString("vod_id").isEmpty()){ids.add(season.optString("vod_id"));names.add(season.optString("series","Season "+(i+1)));}}
-            Button season=Ui.chip(this,"Seasons  ▾");season.setOnClickListener(v->ActionSheet.show(this,"Choose season",names.toArray(new String[0]),index->loadDetail(ids.get(index),"0",provider,kind)));LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(-2,-2);gap.setMargins(Ui.dp(this,8),0,0,0);selectors.addView(season,gap);}
-        HorizontalScrollView choices=new HorizontalScrollView(this);choices.setHorizontalScrollBarEnabled(false);choices.addView(selectors);content.addView(choices);
+            Button season=Ui.playerButton(this,"collections","Seasons",true);season.setOnClickListener(v->ActionSheet.show(this,"Choose season",names.toArray(new String[0]),index->loadDetail(ids.get(index),"0",provider,kind)));LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(-2,-2);gap.setMargins(Ui.dp(this,8),0,0,0);selectors.addView(season,gap);}
+        HorizontalScrollView choices=new HorizontalScrollView(this);choices.setHorizontalScrollBarEnabled(false);choices.addView(selectors);content.addView(choices);appendRelatedTitles(detail);wideTitleLayout();
         if(episodes==null||episodes.length()==0){content.addView(Ui.text(this,"No playable episodes are available for this title.",14,Ui.MUTED));return;}
         if(episodes.length()==1){Button download=Ui.chip(this,"↓  Download for offline");download.setOnClickListener(v->downloadEpisode(detail,episodes.optJSONObject(0),sourceLabel,provider,kind));content.addView(download);}
         if(episodes.length()>1){content.addView(Ui.text(this,"Episodes · "+episodes.length(),18,Ui.INK));appendEpisodes(detail,episodes,0,sourceLabel,provider,kind);}
     }
+    private void wideTitleLayout(){if(getResources().getConfiguration().screenWidthDp<840||content.getChildCount()<2)return;java.util.List<View> parts=new ArrayList<>();for(int i=0;i<content.getChildCount();i++)parts.add(content.getChildAt(i));content.removeAllViews();content.addView(parts.get(0));LinearLayout columns=new LinearLayout(this);columns.setGravity(Gravity.TOP);View art=parts.get(1);columns.addView(art,new LinearLayout.LayoutParams(0,Ui.dp(this,500),.42f));LinearLayout information=Ui.column(this);information.setPadding(Ui.dp(this,24),0,0,0);for(int i=2;i<parts.size();i++)information.addView(parts.get(i),new LinearLayout.LayoutParams(-1,-2));columns.addView(information,new LinearLayout.LayoutParams(0,-2,.58f));content.addView(columns,new LinearLayout.LayoutParams(-1,-2));}
     private void playEpisode(JSONObject detail,JSONObject episode,String label,String provider,String kind){
-        work("Opening episode…",()->CatalogBackend.get(this,provider).playbackJson(detail,episode,label),json->launchPlayer(detail,episode,(String)json,provider,kind));
+        work("Opening episode…",()->app.veyra.data.CatalogProviders.get(this,provider).playbackJson(detail,episode,label),json->launchPlayer(detail,episode,(String)json,provider,kind));
     }
-    private void downloadEpisode(JSONObject detail,JSONObject episode,String label,String provider,String kind){work("Preparing download…",()->CatalogBackend.get(this,provider).playbackJson(detail,episode,label),json->{status.setVisibility(View.GONE);DownloadWorker.start(this,(String)json,detail.optString("vod_pic"));startActivity(new Intent(this,DownloadsActivity.class).putExtra("showTransfers",true));});}
+    private void downloadEpisode(JSONObject detail,JSONObject episode,String label,String provider,String kind){work("Preparing download…",()->app.veyra.data.CatalogProviders.get(this,provider).playbackJson(detail,episode,label),json->{status.setVisibility(View.GONE);DownloadWorker.start(this,(String)json,detail.optString("vod_pic"));startActivity(new Intent(this,DownloadsActivity.class).putExtra("showTransfers",true));});}
     private void appendEpisodes(JSONObject detail,JSONArray episodes,int start,String label,String provider,String kind){
         int end=Math.min(start+12,episodes.length());int columns=getResources().getConfiguration().screenWidthDp>=650?2:1;GridLayout episodeGrid=new GridLayout(this);episodeGrid.setColumnCount(columns);content.addView(episodeGrid,new LinearLayout.LayoutParams(-1,-2));
-        for(int i=start;i<end;i++){JSONObject episode=episodes.optJSONObject(i);if(episode==null)continue;LinearLayout card=Ui.card(this);card.setOrientation(LinearLayout.HORIZONTAL);card.setGravity(Gravity.CENTER_VERTICAL);ImageView thumb=new ImageView(this);thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);card.addView(thumb,new LinearLayout.LayoutParams(Ui.dp(this,64),Ui.dp(this,96)));posters.load(this,thumb,episode.optString("vod_pic",detail.optString("vod_pic")));LinearLayout copy=Ui.column(this);copy.setBackgroundColor(android.graphics.Color.TRANSPARENT);copy.setPadding(Ui.dp(this,12),0,0,0);String name=episode.optString("title");if(name.isEmpty()||name.matches("[0-9. ]+"))name="Episode "+(i+1);TextView title=Ui.text(this,name,16,Ui.INK);title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);copy.addView(title);copy.addView(Ui.text(this,"EP "+(i+1)+"  ·  "+label,11,Ui.MUTED));LinearLayout actions=new LinearLayout(this);Button play=Ui.primary(this,"▷ Watch");play.setContentDescription("Play "+name);play.setOnClickListener(v->playEpisode(detail,episode,label,provider,kind));actions.addView(play,new LinearLayout.LayoutParams(0,Ui.dp(this,48),1));Button save=Ui.quiet(this,"↓ Save");save.setContentDescription("Download "+name);save.setOnClickListener(v->downloadEpisode(detail,episode,label,provider,kind));actions.addView(save,new LinearLayout.LayoutParams(0,Ui.dp(this,48),1));copy.addView(actions);card.addView(copy,new LinearLayout.LayoutParams(0,-2,1));GridLayout.LayoutParams gap=new GridLayout.LayoutParams();gap.width=0;gap.height=-2;gap.columnSpec=GridLayout.spec((i-start)%columns,1f);gap.rowSpec=GridLayout.spec((i-start)/columns);gap.setMargins(0,0,Ui.dp(this,columns>1?8:0),Ui.dp(this,10));episodeGrid.addView(card,gap);}
+        for(int i=start;i<end;i++){JSONObject episode=episodes.optJSONObject(i);if(episode==null)continue;LinearLayout card=Ui.card(this);card.setOrientation(LinearLayout.HORIZONTAL);card.setGravity(Gravity.CENTER_VERTICAL);ImageView thumb=new ImageView(this);thumb.setScaleType(ImageView.ScaleType.CENTER_CROP);card.addView(thumb,new LinearLayout.LayoutParams(Ui.dp(this,64),Ui.dp(this,96)));posters.load(this,thumb,episode.optString("vod_pic",detail.optString("vod_pic")));LinearLayout copy=Ui.column(this);copy.setBackgroundColor(android.graphics.Color.TRANSPARENT);copy.setPadding(Ui.dp(this,12),0,0,0);String name="Episode "+(i+1);TextView title=Ui.text(this,name,16,Ui.INK);title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);copy.addView(title);String runtime=TitleMetadata.duration(episode);if(!runtime.isEmpty())copy.addView(Ui.text(this,runtime,12,Ui.MUTED));LinearLayout actions=new LinearLayout(this);Button play=Ui.primary(this,"▷ Watch");play.setContentDescription("Play "+name);play.setOnClickListener(v->playEpisode(detail,episode,label,provider,kind));actions.addView(play,new LinearLayout.LayoutParams(0,Ui.dp(this,48),1));Button save=Ui.quiet(this,"↓ Save");save.setContentDescription("Download "+name);save.setOnClickListener(v->downloadEpisode(detail,episode,label,provider,kind));actions.addView(save,new LinearLayout.LayoutParams(0,Ui.dp(this,48),1));copy.addView(actions);card.addView(copy,new LinearLayout.LayoutParams(0,-2,1));GridLayout.LayoutParams gap=new GridLayout.LayoutParams();gap.width=0;gap.height=-2;gap.columnSpec=GridLayout.spec((i-start)%columns,1f);gap.rowSpec=GridLayout.spec((i-start)/columns);gap.setMargins(0,0,Ui.dp(this,columns>1?8:0),Ui.dp(this,10));episodeGrid.addView(card,gap);}
         if(end<episodes.length()){Button more=Ui.quiet(this,"More episodes  ↓");more.setOnClickListener(v->{content.removeView(more);appendEpisodes(detail,episodes,end,label,provider,kind);});content.addView(more,new LinearLayout.LayoutParams(-1,Ui.dp(this,48)));}
     }
     private void launchPlayer(JSONObject detail,JSONObject episode,String json,String provider,String kind) throws Exception {
         status.setVisibility(View.GONE);
-        startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",json).putExtra("audioType",detail.optString("audio_type","0"))
-            .putExtra("kind",kind).putExtra("provider",provider).putExtra("vodId",detail.optString("id")).putExtra("collection",EpisodeSelection.key(episode))
+        Intent playback=new Intent(this,PlayerActivity.class).putExtra("privateViewing",PrivateViewing.active(this)).putExtra("playback",json).putExtra("audioType",detail.optString("audio_type","0"))
+            .putExtra("singleEntry",detail.optJSONArray("vod_collection")!=null&&detail.optJSONArray("vod_collection").length()==1).putExtra("kind",kind).putExtra("provider",provider).putExtra("vodId",detail.optString("id")).putExtra("collection",EpisodeSelection.key(episode))
             .putExtra("catalogTitle",detail.optString("vod_name","Video")).putExtra("poster",detail.optString("vod_pic"))
-            .putExtra("connections",connectionChoices.toString()).putExtra("variants",detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString()));
+            .putExtra("connections",connectionChoices.toString()).putExtra("variants",detail.optJSONArray("audio_type_option")==null?"[]":detail.optJSONArray("audio_type_option").toString());
+        for(String marker:new String[]{"intro","recap","credits"}){long[] range=TitleMetadata.skipRange(episode,marker);if(range!=null)playback.putExtra("skip:"+marker,range);}
+        startActivity(EpisodeAvailability.apply(playback,detail,episode));
     }
+    private void openTrailer(JSONObject detail,String url){try{java.net.URI uri=java.net.URI.create(url);String path=uri.getPath()==null?"":uri.getPath().toLowerCase(java.util.Locale.ROOT);String mime=path.endsWith(".m3u8")?"application/x-mpegURL":path.endsWith(".mpd")?"application/dash+xml":"video/mp4";JSONObject source=new JSONObject().put("id","trailer").put("label","Trailer").put("url",url).put("mimeType",mime);String json=new JSONObject().put("schemaVersion",1).put("contentId","trailer:"+selectedProvider+":"+detail.optString("id")).put("title",detail.optString("vod_name")+" · Trailer").put("sources",new JSONArray().put(source)).toString();app.veyra.data.PlaybackJson.parse(json);startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",json).putExtra("trailer",true));}catch(Exception e){Toast.makeText(this,"This trailer could not be opened",Toast.LENGTH_LONG).show();}}
+    private JSONObject personalTitle(JSONObject detail,String provider,String kind){try{return new JSONObject(detail.toString()).put("_provider",provider).put("_kind",kind).put("_editions",connectionChoices);}catch(Exception e){return detail;}}
+    private void personalActions(JSONObject detail,String provider,String kind){JSONObject title=personalTitle(detail,provider,kind);String key=LibraryStore.key(title);boolean watched=PersonalStore.prefs(this).getBoolean("watched:"+key,false),hidden=PersonalStore.hidden(this,title);ActionSheet.show(this,"Your title",new String[]{"Add to collection",watched?"Mark unwatched":"Mark watched",hidden?"Show in discovery again":"Not interested", "Your rating & note"},index->{if(index==0){java.util.List<String> ids=new ArrayList<>(PersonalStore.collections(this).keySet());if(ids.isEmpty()){startActivity(new Intent(this,CollectionsActivity.class));return;}String[] names=new String[ids.size()];for(int i=0;i<ids.size();i++)names[i]=PersonalStore.collections(this).get(ids.get(i)).optString("name");ActionSheet.show(this,"Add to collection",names,n->{try{PersonalStore.add(this,ids.get(n),title);Toast.makeText(this,"Added to collection",Toast.LENGTH_SHORT).show();}catch(Exception e){Toast.makeText(this,"Collection could not be updated",Toast.LENGTH_SHORT).show();}});}else if(index==1){PersonalStore.watched(this,title,!watched);Toast.makeText(this,watched?"Marked unwatched":"Marked watched",Toast.LENGTH_SHORT).show();}else if(index==2){PersonalStore.hide(this,title,!hidden);Toast.makeText(this,hidden?"Title restored to discovery":"Hidden from discovery",Toast.LENGTH_SHORT).show();}else{LinearLayout fields=Ui.column(this);EditText rating=new EditText(this),note=new EditText(this);rating.setHint("Your rating · 0 to 10");rating.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);note.setHint("Your note");note.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(500)});try{JSONObject review=new JSONObject(PersonalStore.prefs(this).getString("review:"+key,"{}"));if(review.has("rating"))rating.setText(""+review.getInt("rating"));note.setText(review.optString("note"));}catch(Exception ignored){}fields.addView(rating);fields.addView(note);new AlertDialog.Builder(this).setTitle("Your thoughts").setView(fields).setNegativeButton("Cancel",null).setPositiveButton("Save",(d,w)->{try{PersonalStore.review(this,title,Integer.parseInt(rating.getText().toString()),note.getText().toString());Toast.makeText(this,"Review saved",Toast.LENGTH_SHORT).show();}catch(Exception e){Toast.makeText(this,"Use a rating from 0 to 10",Toast.LENGTH_SHORT).show();}}).show();}});}
     private String favoriteLabel(JSONObject detail,String provider,String kind) {
-        return getSharedPreferences("favorites",MODE_PRIVATE).contains(provider+":"+kind+":"+detail.optString("id"))?"✓  Saved":"+  My list";
+        return app.veyra.ProfileStore.prefs(this,"favorites").contains(provider+":"+kind+":"+detail.optString("id"))?"✓  Saved":"+  My list";
     }
     private void toggleFavorite(JSONObject detail,String provider,String kind) {
-        try {String id=provider+":"+kind+":"+detail.optString("id");android.content.SharedPreferences prefs=getSharedPreferences("favorites",MODE_PRIVATE);
+        try {String id=provider+":"+kind+":"+detail.optString("id");android.content.SharedPreferences prefs=app.veyra.ProfileStore.prefs(this,"favorites");
             if(prefs.contains(id)){prefs.edit().remove(id).apply();Toast.makeText(this,"Removed from My Library",Toast.LENGTH_SHORT).show();}
-            else {JSONObject record=new JSONObject();for(String key:new String[]{"id","vod_name","vod_pic","vod_year","vod_area","vod_douban_score"})record.put(key,detail.optString(key));record.put("_provider",provider).put("_kind",kind);prefs.edit().putString(id,record.toString()).apply();Toast.makeText(this,"Saved to My Library",Toast.LENGTH_SHORT).show();}
+            else {JSONObject record=new JSONObject();for(String key:new String[]{"id","vod_name","vod_pic","vod_year","vod_area","vod_class","vod_lang","vod_douban_score"})record.put(key,detail.optString(key));record.put("_provider",provider).put("_kind",kind);prefs.edit().putString(id,record.toString()).apply();Toast.makeText(this,"Saved to My Library",Toast.LENGTH_SHORT).show();}
         }catch(JSONException ignored){status.setText("Could not save this title.");}
     }
     private void favorites() {shell(true);
         status.setVisibility(View.VISIBLE);((View)tabs.getParent()).setVisibility(View.VISIBLE);
         retry.setVisibility(View.GONE);generation++;if(pending!=null)pending.cancel(true);currentDetail=null;screen="favorites";posters.clearPending();content.removeAllViews();status.setText("Your collection");status.setTextSize(28);
-        List<JSONObject> saved=new ArrayList<>();for(Object value:getSharedPreferences("favorites",MODE_PRIVATE).getAll().values())try{saved.add(new JSONObject((String)value));}catch(Exception ignored){}
+        List<JSONObject> saved=new ArrayList<>();for(Object value:app.veyra.ProfileStore.prefs(this,"favorites").getAll().values())try{saved.add(new JSONObject((String)value));}catch(Exception ignored){}
         libraryTabs();if(saved.isEmpty()){emptyState("Your next watch starts here","Tap + on any poster to build a collection for later.");}else renderTitles(saved);
     }
     private void emptyState(String title,String copy){showContent();content.removeAllViews();status.setVisibility(View.GONE);LinearLayout state=Ui.column(this);state.setPadding(Ui.dp(this,12),Ui.dp(this,44),Ui.dp(this,12),Ui.dp(this,28));ImageView symbol=new ImageView(this);symbol.setImageResource(R.drawable.velixio_logo);symbol.setContentDescription(null);state.addView(symbol,new LinearLayout.LayoutParams(Ui.dp(this,96),Ui.dp(this,96)));TextView heading=Ui.text(this,title,27,Ui.INK);heading.setTypeface(null,android.graphics.Typeface.BOLD);state.addView(heading);TextView description=Ui.text(this,copy,15,Ui.MUTED);description.setLineSpacing(Ui.dp(this,4),1);state.addView(description);Button browse=Ui.primary(this,"Find your next watch");browse.setOnClickListener(v->goHome());LinearLayout.LayoutParams action=new LinearLayout.LayoutParams(-2,Ui.dp(this,48));action.topMargin=Ui.dp(this,20);state.addView(browse,action);content.addView(state);}
@@ -263,33 +446,33 @@ public final class MainActivity extends Activity {
         if(records.isEmpty()){emptyState("Pick up where you left off","Start a film or series. Your unfinished stories will be waiting here.");return;}
         for(JSONObject record:records) {
             FrameLayout card=new FrameLayout(this);LinearLayout.LayoutParams place=new LinearLayout.LayoutParams(-1,Ui.dp(this,195));place.setMargins(0,0,0,Ui.dp(this,16));content.addView(card,place);
-            ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);card.addView(poster,new FrameLayout.LayoutParams(-1,-1));posters.load(this,poster,record.optString("poster"));View shade=new View(this);shade.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,new int[]{((Ui.BG&0x00ffffff)|0xf2000000),((Ui.BG&0x00ffffff)|0x66000000)}));card.addView(shade,new FrameLayout.LayoutParams(-1,-1));LinearLayout copy=Ui.column(this);copy.setBackgroundColor(android.graphics.Color.TRANSPARENT);copy.setPadding(Ui.dp(this,20),Ui.dp(this,12),Ui.dp(this,20),Ui.dp(this,12));TextView title=Ui.text(this,record.optString("title","Video"),22,Ui.INK);title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);copy.addView(title);long position=record.optLong("position"),duration=record.optLong("duration");copy.addView(Ui.text(this,(position/60000)+" min watched",12,Ui.MUTED));if(duration>0){ProgressBar progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(1000);progress.setProgressTintList(android.content.res.ColorStateList.valueOf(Ui.ACCENT));progress.setProgress((int)Math.min(1000,(double)position/duration*1000));copy.addView(progress,new LinearLayout.LayoutParams(-1,Ui.dp(this,4)));}Button resume=Ui.primary(this,"▶  Resume story");resume.setOnClickListener(v->resume(record));copy.addView(resume,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));card.addView(copy,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
+            ImageView poster=new ImageView(this);poster.setScaleType(ImageView.ScaleType.CENTER_CROP);card.addView(poster,new FrameLayout.LayoutParams(-1,-1));posters.load(this,poster,record.optString("poster"));View shade=new View(this);shade.setBackground(new android.graphics.drawable.GradientDrawable(android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,new int[]{((Ui.BG&0x00ffffff)|0xf2000000),((Ui.BG&0x00ffffff)|0x66000000)}));card.addView(shade,new FrameLayout.LayoutParams(-1,-1));LinearLayout copy=Ui.column(this);copy.setBackgroundColor(android.graphics.Color.TRANSPARENT);copy.setPadding(Ui.dp(this,20),Ui.dp(this,12),Ui.dp(this,20),Ui.dp(this,12));TextView title=Ui.text(this,record.optString("title","Video"),22,Ui.INK);title.setMaxLines(2);title.setEllipsize(android.text.TextUtils.TruncateAt.END);copy.addView(title);long position=record.optLong("position"),duration=record.optLong("duration");copy.addView(Ui.text(this,(position/60000)+" min watched",12,Ui.MUTED));if(duration>0){ProgressBar progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(1000);progress.setProgressTintList(android.content.res.ColorStateList.valueOf(Ui.ACCENT));progress.setProgress((int)Math.min(1000,(double)position/duration*1000));copy.addView(progress,new LinearLayout.LayoutParams(-1,Ui.dp(this,4)));}Button resume=Ui.primary(this,"▶  Resume story");resume.setOnClickListener(v->resume(record));copy.addView(resume,new LinearLayout.LayoutParams(-2,Ui.dp(this,48)));Button remove=Ui.quiet(this,"Remove from Continue watching");remove.setOnClickListener(v->{String key=record.optString("provider")+":"+record.optString("kind")+":"+record.optString("id");ProfileStore.prefs(this,"watch-history").edit().remove(key).apply();history();});copy.addView(remove);card.addView(copy,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
 
         }
     }
     private void resume(JSONObject record) {
         String provider=record.optString("provider","current"),kind=record.optString("kind","movie");
         work("Resuming your episode…",()->{
-            CatalogBackend backend=CatalogBackend.get(this,provider);JSONObject detail=backend.detail(record.optString("id"),record.optString("audioType","0"),kind);
+            app.veyra.data.StreamingBackend backend=app.veyra.data.CatalogProviders.get(this,provider);JSONObject detail=backend.detail(record.optString("id"),record.optString("audioType","0"),kind);
             JSONObject episode=EpisodeSelection.select(detail.getJSONArray("vod_collection"),record.optString("collection"),0);
             return new Object[]{detail,episode,backend.playbackJson(detail,episode,"Selected source")};
         },result->{Object[] values=(Object[])result;launchPlayer((JSONObject)values[0],(JSONObject)values[1],(String)values[2],provider,kind);});
     }
     private void expandHome(List<JSONObject> first){
         final int ticket=generation;pending=io.submit(()->{
-            LinkedHashMap<String,JSONObject> all=new LinkedHashMap<>();for(JSONObject item:first)all.put(LibraryStore.key(item),item);boolean partial=false;
-            for(int next=2;next<=3;next++){if(Thread.currentThread().isInterrupted())return;try{for(JSONObject item:catalog.titles("discover","",next))all.put(LibraryStore.key(item),item);if(!catalog.warning.isEmpty())partial=true;}catch(Exception e){partial=true;}}
-            final boolean incomplete=partial;List<JSONObject> expanded=new ArrayList<>(all.values());runOnUiThread(()->{if(isDestroyed()||isFinishing()||ticket!=generation||!screen.equals("catalog"))return;
+            List<JSONObject> all=new ArrayList<>(first);boolean partial=false;
+            for(int next=2;next<=3;next++){if(Thread.currentThread().isInterrupted())return;try{all.addAll(catalog.titles("discover","",next));if(!catalog.warning.isEmpty())partial=true;}catch(Exception e){partial=true;}}
+            final boolean incomplete=partial;List<JSONObject> expanded;try{expanded=CombinedCatalog.group(all);}catch(JSONException e){return;}runOnUiThread(()->{if(isDestroyed()||isFinishing()||ticket!=generation||!screen.equals("catalog"))return;
                 cacheBrowse("discover|1|",expanded,incomplete?"Some discovery rows could not refresh. Available titles are shown.":catalog.warning);
                 android.os.Parcelable position=collection.getLayoutManager()==null?null:collection.getLayoutManager().onSaveInstanceState();renderTitles(expanded);if(position!=null)collection.getLayoutManager().onRestoreInstanceState(position);
                 if(incomplete){status.setText("Some discovery rows could not refresh. Available titles are shown.");status.setVisibility(View.VISIBLE);}
             });
         });
     }
-    private void options(){ActionSheet.show(this,"Your Velixio",new String[]{"Continue watching","My list","Downloads · offline","Appearance & settings"},index->{if(index==0)history();else if(index==1)favorites();else if(index==2)startActivity(new Intent(this,DownloadsActivity.class));else startActivityForResult(new Intent(this,SettingsActivity.class),50);});}
-    @Override protected void onResume(){super.onResume();if(root!=null&&(appearanceTheme!=getSharedPreferences("settings",0).getInt("theme",0)||appearanceCompact!=getSharedPreferences("settings",0).getBoolean("compactPosters",false)))recreate();}
+    private void options(){ ActionSheet.show(this,"Your Velixio",ProfileStore.name(this),new String[]{"Continue watching","My list","Collections","Followed series","Downloads",PrivateViewing.active(this)?"End private viewing":"Start private viewing","Settings"},new String[]{"history","bookmark","collections","sparkle","download","privacy","settings"},-1,index->{if(index==0)history();else if(index==1)favorites();else if(index==2)startActivity(new Intent(this,CollectionsActivity.class));else if(index==3)startActivity(new Intent(this,FollowsActivity.class));else if(index==4)startActivity(new Intent(this,DownloadsActivity.class));else if(index==5){boolean enabled=PrivateViewing.toggle(this);Toast.makeText(this,enabled?"Private viewing is on":"Private viewing ended",Toast.LENGTH_SHORT).show();}else startActivityForResult(new Intent(this,SettingsActivity.class),50);});}
+    @Override protected void onResume(){super.onResume();if(root!=null&&(!ProfileStore.id(this).equals(appearanceProfile)||appearanceTheme!=getSharedPreferences("settings",0).getInt("theme",0)||appearanceCompact!=getSharedPreferences("settings",0).getBoolean("compactPosters",false)))recreate();}
     @Override protected void onActivityResult(int request,int result,Intent data) {
-        super.onActivityResult(request,result,data);if(request==50){if(result==RESULT_OK){if(screen.equals("favorites"))favorites();else if(screen.equals("history"))history();else if(screen.equals("catalog")||screen.equals("search"))loadCatalog();}return;}if(result!=RESULT_OK||data==null||data.getData()==null)return;
+        super.onActivityResult(request,result,data);if(request==61){if(result==RESULT_OK){returnScroll=null;if(query.isEmpty())openSearch();else loadCatalog();}return;}if(request==50){if(result==RESULT_OK){String watched=data==null?null:data.getStringExtra("resume");if(watched==null)recreate();else try{resume(new JSONObject(watched));}catch(JSONException ignored){}}return;}if(result!=RESULT_OK||data==null||data.getData()==null)return;
         android.net.Uri uri=data.getData();
         if(request!=10)return;
         work("Opening playback file…",()->{try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new IOException();String json=CatalogBackend.read(in,65536);PlaybackJson.parse(json);return json;}},value->{status.setText("Ready");startActivity(new Intent(this,PlayerActivity.class).putExtra("playback",(String)value));});
@@ -299,5 +482,5 @@ public final class MainActivity extends Activity {
         state.putString("returnScreen",returnScreen);state.putParcelable("returnScroll",returnScroll);state.putString("screen",screen);state.putString("provider",selectedProvider);state.putString("kind",selectedKind);
         if(currentDetail!=null){state.putString("detailId",currentDetail.optString("id"));state.putString("audioType",currentDetail.optString("audio_type","0"));}
         super.onSaveInstanceState(state);}
-    @Override protected void onDestroy() {generation++;if(pending!=null)pending.cancel(true);posters.close();catalog.close();io.shutdownNow();super.onDestroy();}
+    @Override protected void onDestroy() {suggestionHandler.removeCallbacks(suggest);generation++;if(pending!=null)pending.cancel(true);posters.close();catalog.close();io.shutdownNow();super.onDestroy();}
 }

@@ -1,5 +1,32 @@
 # Release notes
 
+## 1.1.0-rc3 — TV casting development
+- Add a dedicated Cast to TV screen from the player.
+- Add Google Cast via the public default receiver and standards-based DLNA discovery/AVTransport controls.
+- Add TV-browser playback with a short LAN address and a single-use, two-minute pairing code, limited to five failed attempts.
+- Relay the selected HLS/MP4 stream without transcoding or changing upstream authorization. The relay registers playlist resources behind temporary opaque URLs, forwards range requests and retains origin-scoped headers.
+- Keep casting active in a foreground service while the screen is off; stop on explicit stop, task removal, process death, network loss, ten idle minutes or twelve hours.
+- Universal receiver compatibility is not claimed: browser codecs, Google Play services, DLNA capabilities and device support vary. See CASTING.md. Offline casting, DASH, remote watch-history synchronization and receiver caption controls are not implemented.
+
+## 1.1.0-rc2 — queue and Android platform features
+- Add a persisted sequential queue with pause/resume/retry/reordering and safe fresh-stream resolution. Retain partial data when the stream resource identity is unchanged.
+- Add metadata-based search filters and explicit genre/history recommendation preferences.
+- Add resume widget and privacy control, Continue Watching shortcut, Android TV launcher/focus support and wide-window title columns.
+- Add followed-series checks/notifications and conditional trailer previews from explicit catalog metadata.
+- Add external SRT/WebVTT timing, additional caption styles, session audio effects/night mode, offline-resource checks and active watch-time statistics.
+- Keep same native runtime/package/signing identity and preserve completed downloads. See ANDROID-EXPANSION.md for limitations and pending receiver/device work.
+
+
+## 1.1.0-rc1 — Android feature development
+- Add local metadata profiles while preserving the original profile's library and keeping playback pinned to its starting profile.
+- Add collections, ratings, notes, watched controls, explicit discovery feedback and per-profile Home shelf visibility/order. Include personal records in validated metadata backups.
+- Add richer update prompts, reminder snoozing, a What's new page, storage breakdown, Wi-Fi/download-budget preferences, private download notices and history privacy.
+- Add gesture seeking/brightness/volume, touch lock, a sleep timer, caption appearance controls, cancellable episode countdown and direct playback recovery.
+- Add debounced search results, offline startup routing, launcher shortcuts, viewing-progress overview and reviewed feedback sharing.
+- Retain automatic-backup status, and bind scheduled backups to the profile chosen during folder setup.
+
+84 automated tests pass; Android debug lint has no errors. This is a debug-signed development build. Device playback, Wi-Fi changes, visual/accessibility acceptance and live provider behavior are not verified for this increment. The download queue, advanced recommendations/filters, TV/casting, widgets, trailers, reminders, subtitle timing and audio enhancements remain on the roadmap. See ANDROID-EXPANSION.md.
+
 ## 1.0.2
 - Accept numbered release tags such as 1.0.2-3 and branded version tags, with release-title fallback. Keep signing and checksum verification.
 - Show a brief Velixio launch overlay while the catalog loads concurrently.

@@ -1,0 +1,7 @@
+package app.veyra;
+import android.view.*;import android.widget.TextView;import org.json.*;import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import org.robolectric.android.controller.ActivityController;import static org.junit.Assert.*;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=28)
+public class FollowsPageTest {
+ private boolean contains(View view,String text){if(view instanceof TextView&&((TextView)view).getText().toString().equals(text))return true;if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)if(contains(((ViewGroup)view).getChildAt(i),text))return true;return false;}
+ @Test public void returningAfterProfileSwitchDoesNotShowAnotherProfilesSeries()throws Exception{android.content.Context c=RuntimeEnvironment.getApplication();JSONObject detail=new JSONObject().put("id","42").put("vod_name","First profile series").put("vod_collection",new JSONArray().put(new JSONObject().put("id","1")).put(new JSONObject().put("id","2")));FollowStore.toggle(c,detail,"current","movie");try(ActivityController<FollowsActivity> activity=Robolectric.buildActivity(FollowsActivity.class).setup()){assertTrue(contains(activity.get().getWindow().getDecorView(),"First profile series"));activity.pause().stop();ProfileStore.select(c,ProfileStore.create(c,"Other"));activity.start().resume();assertFalse(contains(activity.get().getWindow().getDecorView(),"First profile series"));}}
+}

@@ -27,4 +27,12 @@ public final class EpisodeSelection {
         if(target<0 || target>=episodes.length()) throw new IOException(offset<0?"This is the first episode":"This is the last episode");
         return episodes.getJSONObject((int)target);
     }
+    public static JSONObject switchSource(JSONArray episodes,String selected,boolean singleEntry)throws Exception {
+        if(singleEntry&&episodes!=null&&episodes.length()==1){
+            JSONObject episode=episodes.getJSONObject(0);
+            key(episode);
+            return episode;
+        }
+        return select(episodes,selected,0);
+    }
 }

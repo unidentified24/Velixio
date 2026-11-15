@@ -12,6 +12,9 @@ See the `LICENSE` file in the repository for the full license text.
 - **Media3 OkHttp datasource, OkHttp and Okio:** Retain their upstream Apache-2.0 licenses.
 - **AndroidX RecyclerView 1.4.0:** Apache License 2.0. Source: https://android.googlesource.com/platform/frameworks/support/+/androidx-main/recyclerview/
 
+- **AndroidX AppCompat, Fragment and MediaRouter:** Apache License 2.0; transitive Google Cast UI dependencies.
+- **Google Play services Cast framework 22.3.1:** Google SDK/API terms and applicable packaged notices. Source licensing of Velixio does not relicense this SDK. Verify distribution and GPL compatibility along with the external runtime before public distribution.
+
 ## Testing dependencies
 
 The following dependencies are used for development and testing:
@@ -36,6 +39,14 @@ Velixio's GPL-3.0 license does not independently grant redistribution rights for
 The small `com.pp.hls` Java declaration is an ABI interface and does not contain native implementation code.
 
 Compatibility between the external runtime's license and GPL-3.0 must be verified before distributing builds that combine them.
+
+## Browser HLS playback
+
+The browser receiver bundles hls.js 1.6.13 under the Apache License 2.0. Its license is included in the APK at `assets/cast-hls/LICENSE`. The browser loads the library from the phone's local casting session. [Source](https://github.com/video-dev/hls.js/tree/v1.6.13)
+
+## Interface typography
+
+Arimo Regular, Arimo Bold, and Oswald Medium are distributed under the SIL Open Font License 1.1. Their copyright notices and license texts are bundled under `assets/licenses/`.
 
 ## Distribution requirements
 

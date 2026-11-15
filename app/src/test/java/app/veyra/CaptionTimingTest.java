@@ -1,0 +1,11 @@
+package app.veyra;
+import android.net.Uri;import androidx.media3.datasource.*;import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.RobolectricTestRunner;import org.robolectric.annotation.Config;import java.nio.charset.StandardCharsets;import java.util.*;import static org.junit.Assert.*;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=28)
+@androidx.annotation.OptIn(markerClass=androidx.media3.common.util.UnstableApi.class)
+public class CaptionTimingTest {
+ @Test public void shiftsOnlySrtTimingLines(){String input="1\n00:00:01,000 --> 00:00:02,500\nMeet at 00:00:03,000\n";String out=CaptionTiming.shift(input,500);assertTrue(out.contains("00:00:01,500 --> 00:00:03,000"));assertTrue(out.contains("Meet at 00:00:03,000"));}
+ @Test public void webVttSettingsSurviveAndNegativeTimesClamp(){String out=CaptionTiming.shift("WEBVTT\n\n00:00.300 --> 00:01.000 align:start position:10%\nHello\n",-500);assertTrue(out.contains("00:00.000 --> 00:00.500 align:start position:10%"));}
+ @Test public void unsupportedOrInvalidLinesRemainUnchanged(){String input="<p begin=\"00:00:01.000\">Hello</p>\n00:00:03,000 --> 00:00:01,000\n";assertEquals(input,CaptionTiming.shift(input,500));}
+ @Test public void videoRequestsBypassTheCaptionTransform()throws Exception{byte[] bytes={0,1,2,3,4};DataSource.Factory original=()->new ByteArrayDataSource(bytes);DataSource video=CaptionTiming.factory(original,Collections.singleton("https://example.invalid/caption.srt"),500).createDataSource();video.open(new DataSpec(Uri.parse("https://example.invalid/movie.mp4")));byte[] out=new byte[5];assertEquals(5,video.read(out,0,5));assertArrayEquals(bytes,out);video.close();}
+ @Test public void subtitleFactoryShiftsTextWithoutAnotherNetworkSource()throws Exception{String text="00:00:01,000 --> 00:00:02,000\nHello\n",url="https://example.invalid/caption.srt";DataSource source=CaptionTiming.factory(()->new ByteArrayDataSource(text.getBytes(StandardCharsets.UTF_8)),Collections.singleton(url),500).createDataSource();source.open(new DataSpec(Uri.parse(url)));byte[] bytes=new byte[256];int n=source.read(bytes,0,bytes.length);assertTrue(new String(bytes,0,n,StandardCharsets.UTF_8).contains("00:00:01,500"));source.close();}
+}

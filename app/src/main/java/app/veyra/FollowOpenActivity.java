@@ -1,0 +1,3 @@
+package app.veyra;
+import android.app.Activity;import android.os.Bundle;import android.content.Intent;import org.json.JSONObject;
+public final class FollowOpenActivity extends Activity {public void onCreate(Bundle state){super.onCreate(state);String profile=getIntent().getStringExtra("profile"),key=getIntent().getStringExtra("key");if(profile!=null&&ProfileStore.list(this).containsKey(profile)){JSONObject title=FollowStore.list(ProfileStore.fixed(this,profile)).get(key);if(title!=null){ProfileStore.select(this,profile);startActivity(new Intent(this,MainActivity.class).putExtra("openTitle",title.toString()));}}finish();}}

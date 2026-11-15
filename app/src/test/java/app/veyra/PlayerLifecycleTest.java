@@ -5,6 +5,14 @@ import android.app.PictureInPictureParams;
 import app.veyra.data.PlaybackJson;
 import androidx.media3.ui.PlayerView;
 import android.os.Bundle;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import androidx.media3.common.C;
+import androidx.media3.common.Format;
+import androidx.media3.common.TrackGroup;
+import androidx.media3.common.TrackSelectionOverride;
+import androidx.media3.common.TrackSelectionParameters;
 import androidx.media3.exoplayer.ExoPlayer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,6 +34,66 @@ public class PlayerLifecycleTest {
     }
     private ExoPlayer player(PlayerActivity activity) throws Exception {
         Field field=PlayerActivity.class.getDeclaredField("player");field.setAccessible(true);return (ExoPlayer)field.get(activity);
+    }
+    @Test public void changingQualityClearsOnlyVideoOverrideAndResetsOldCap() {
+        try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,playback()).create()){
+            PlayerActivity activity=controller.get();
+            TrackGroup video=new TrackGroup(new Format.Builder().setSampleMimeType("video/avc").setHeight(720).build());
+            TrackGroup audio=new TrackGroup(new Format.Builder().setSampleMimeType("audio/mp4a-latm").setLanguage("hi").build());
+            TrackSelectionParameters previous=new TrackSelectionParameters.Builder().setMaxVideoSize(854,480)
+                .setOverrideForType(new TrackSelectionOverride(video,0))
+                .setOverrideForType(new TrackSelectionOverride(audio,0)).build();
+            TrackSelectionParameters highest=activity.qualityMode(previous,-1);
+            assertTrue(highest.forceHighestSupportedBitrate);
+            assertEquals(Integer.MAX_VALUE,highest.maxVideoHeight);
+            assertEquals(Integer.MAX_VALUE,highest.viewportHeight);
+            assertFalse(highest.overrides.containsKey(video));
+            assertTrue(highest.overrides.containsKey(audio));
+            TrackSelectionParameters automatic=activity.qualityMode(highest,0);
+            assertFalse(automatic.forceHighestSupportedBitrate);
+            assertEquals(Integer.MAX_VALUE,automatic.maxVideoHeight);
+            assertEquals(C.TRACK_TYPE_AUDIO,automatic.overrides.get(audio).getType());
+        }
+    }
+    @Test public void settingsSheetShowsSelectedOptionWithoutChangingItsLabel() {
+        try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,playback()).create()){
+            int[] chosen={-1};
+            android.app.Dialog sheet=ActionSheet.show(controller.get(),"Video quality","Playing 720p",
+                new String[]{"Auto (adaptive)","Highest available"},1,index->chosen[0]=index);
+            java.util.ArrayList<View> matches=new java.util.ArrayList<>();
+            sheet.getWindow().getDecorView().findViewsWithText(matches,"Highest available",View.FIND_VIEWS_WITH_TEXT);
+            assertEquals(1,matches.size());
+            Button option=(Button)matches.get(0);
+            assertTrue(option.isSelected());
+            assertEquals("Highest available",option.getText().toString());
+            assertTrue(option.performClick());
+            assertEquals(1,chosen[0]);
+            assertFalse(sheet.isShowing());
+        }
+    }
+    @Test public void nextEpisodeVisibilityFollowsCatalogAvailabilityAfterSwitching() throws Exception {
+        org.json.JSONObject first=new org.json.JSONObject().put("id","first");
+        org.json.JSONObject last=new org.json.JSONObject().put("id","last");
+        org.json.JSONObject detail=new org.json.JSONObject().put("vod_collection",new org.json.JSONArray().put(first).put(last));
+        Intent intent=EpisodeAvailability.apply(playback().putExtra("vodId","series-1"),detail,first);
+        try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,intent).create()) {
+            PlayerActivity activity=controller.get();
+            View next=activity.findViewById(R.id.player_next_episode);
+            View previous=activity.findViewById(R.id.player_previous_episode);
+            assertEquals(View.VISIBLE,next.getVisibility());
+            assertEquals(View.INVISIBLE,previous.getVisibility());
+            assertEquals("Next episode",next.getContentDescription().toString());
+
+            EpisodeAvailability.apply(activity.getIntent(),detail,last);
+            String json=intent.getStringExtra("playback");
+            activity.completeResolution(PlaybackJson.parseInternal(json),json,"0","last","[]",1);
+            assertEquals(View.INVISIBLE,next.getVisibility());
+            assertEquals(View.VISIBLE,previous.getVisibility());
+            assertEquals("Previous episode",previous.getContentDescription().toString());
+        }
+        try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,playback()).create()) {
+            assertEquals(View.INVISIBLE,controller.get().findViewById(R.id.player_next_episode).getVisibility());
+        }
     }
     @Test public void pauseKeepsPlayerForPictureInPictureAndStopReleasesIt() throws Exception {
         try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,playback()).setup()) {
@@ -105,5 +173,29 @@ public class PlayerLifecycleTest {
     }
 
     @Test public void sizingModesIncludeFitFillAndStretch()throws Exception{try(ActivityController<PlayerActivity> c=Robolectric.buildActivity(PlayerActivity.class,playback()).setup()){PlayerActivity a=c.get();Field mode=PlayerActivity.class.getDeclaredField("sizing");mode.setAccessible(true);Field vf=PlayerActivity.class.getDeclaredField("view");vf.setAccessible(true);java.lang.reflect.Method apply=PlayerActivity.class.getDeclaredMethod("applySizing");apply.setAccessible(true);int[] expected={androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL};for(int i=0;i<3;i++){mode.setInt(a,i);apply.invoke(a);assertEquals(expected[i],((PlayerView)vf.get(a)).getResizeMode());}}}
- @Test public void customControlsExposeSizingWithoutStockSettings()throws Exception{try(ActivityController<PlayerActivity> c=Robolectric.buildActivity(PlayerActivity.class,playback()).setup()){PlayerActivity a=c.get();android.widget.LinearLayout tools=a.findViewById(R.id.velixio_player_tools);assertNotNull(tools);assertNull(a.findViewById(androidx.media3.ui.R.id.exo_settings));android.widget.Button size=null;for(int n=0;n<tools.getChildCount();n++)if(tools.getChildAt(n) instanceof android.widget.Button&&((android.widget.Button)tools.getChildAt(n)).getText().toString().equals("Fit"))size=(android.widget.Button)tools.getChildAt(n);assertNotNull(size);size.performClick();Field field=PlayerActivity.class.getDeclaredField("view");field.setAccessible(true);assertEquals(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,((PlayerView)field.get(a)).getResizeMode());size.performClick();assertEquals(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL,((PlayerView)field.get(a)).getResizeMode());}}
+    @Test @Config(qualifiers="w320dp-h640dp")
+    public void compactToolbarOffersSizingThroughItsOverflow() throws Exception {
+        try(ActivityController<PlayerActivity> controller=Robolectric.buildActivity(PlayerActivity.class,playback()).setup()){
+            PlayerActivity activity=controller.get();
+            android.widget.LinearLayout tools=activity.findViewById(R.id.velixio_player_tools);
+            assertNull(activity.findViewById(androidx.media3.ui.R.id.exo_settings));
+            assertEquals(1,((ViewGroup)tools.getParent().getParent()).getChildCount());
+            Button more=null;
+            for(int i=0;i<tools.getChildCount();i++){
+                View child=tools.getChildAt(i);
+                if("Video and tracks".equals(child.getContentDescription()))more=(Button)child;
+            }
+            assertNotNull(more);
+            assertEquals(View.VISIBLE,more.getVisibility());
+            more.performClick();
+            android.app.Dialog sheet=org.robolectric.shadows.ShadowDialog.getLatestDialog();
+            java.util.ArrayList<View> sizes=new java.util.ArrayList<>();
+            sheet.getWindow().getDecorView().findViewsWithText(sizes,"Picture size",View.FIND_VIEWS_WITH_TEXT);
+            assertEquals(1,sizes.size());
+            sizes.get(0).performClick();
+            Field field=PlayerActivity.class.getDeclaredField("view");
+            field.setAccessible(true);
+            assertEquals(androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM,((PlayerView)field.get(activity)).getResizeMode());
+        }
+    }
 }

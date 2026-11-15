@@ -27,6 +27,16 @@ public class BackendContractTest {
         JSONObject b=new JSONObject().put("id",23).put("vod_name","Second").put("_provider","classic");
         assertEquals(2,CombinedCatalog.group(Arrays.asList(a,b)).size());
     }
+    @Test public void unrelatedProviderDoesNotShareLegacyTitleNamespace() throws Exception {
+        JSONObject current=new JSONObject().put("id",23).put("vod_name","Shared")
+            .put("vod_year","2024").put("_provider","current");
+        JSONObject other=new JSONObject(current.toString()).put("_provider","bluesun");
+        assertEquals(2,CombinedCatalog.group(Arrays.asList(current,other)).size());
+        JSONObject classic=new JSONObject(current.toString()).put("_provider","classic");
+        current.remove("vod_year");
+        classic.remove("vod_year");
+        assertEquals(2,CombinedCatalog.group(Arrays.asList(current,classic)).size());
+    }
     @Test public void shortDramaIdsDoNotCollideWithMovieIds() throws Exception {
         JSONObject movie=new JSONObject().put("id",23).put("vod_name","Title").put("_provider","current");
         JSONObject shortDrama=CatalogBackend.normalizeShort(new JSONObject().put("id",23).put("title","Title").put("cover","https://example.invalid/cover.jpg"));shortDrama.put("_provider","current");

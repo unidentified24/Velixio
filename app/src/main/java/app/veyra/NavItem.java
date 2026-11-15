@@ -9,6 +9,7 @@ import android.widget.*;
 final class NavItem extends LinearLayout {
     private final TextView label;
     private final View icon;
+    private final FrameLayout iconBackground;
     private int color=Ui.MUTED;
     NavItem(Activity activity,String name,int index){
         super(activity);setOrientation(VERTICAL);setGravity(Gravity.CENTER);setPadding(0,Ui.dp(activity,8),0,Ui.dp(activity,5));setContentDescription(name);setFocusable(true);
@@ -22,8 +23,21 @@ final class NavItem extends LinearLayout {
                 else if(index==4){c.drawLine(14,3,14,18,paint);p.moveTo(7,12);p.lineTo(14,19);p.lineTo(21,12);p.moveTo(4,21);p.lineTo(4,25);p.lineTo(24,25);p.lineTo(24,21);c.drawPath(p,paint);}
                 else{p.moveTo(6,4);p.lineTo(22,4);p.lineTo(22,25);p.lineTo(14,19);p.lineTo(6,25);p.close();c.drawPath(p,paint);}c.restore();
             }
-        };addView(icon,new LayoutParams(Ui.dp(activity,24),Ui.dp(activity,24)));
+        };
+        iconBackground=new FrameLayout(activity);
+        iconBackground.addView(icon,new FrameLayout.LayoutParams(Ui.dp(activity,21),Ui.dp(activity,21),Gravity.CENTER));
+        addView(iconBackground,new LayoutParams(Ui.dp(activity,38),Ui.dp(activity,27)));
         label=Ui.text(activity,name,10,color);label.setPadding(0,Ui.dp(activity,4),0,0);label.setGravity(Gravity.CENTER);addView(label);setActive(index==0);
     }
-    void setActive(boolean selected){setSelected(selected);color=selected?Ui.ACCENT:Ui.MUTED;label.setTextColor(color);label.setTypeface(null,selected?Typeface.BOLD:Typeface.NORMAL);setAlpha(selected?1f:.72f);icon.invalidate();}
+    void setActive(boolean selected){
+        setSelected(selected);
+        color=selected?Ui.ACCENT:Ui.MUTED;
+        label.setTextColor(color);
+        label.setTypeface(Ui.type(getContext(),selected?R.font.arimo_bold:R.font.arimo_regular));
+        android.graphics.drawable.GradientDrawable face=new android.graphics.drawable.GradientDrawable();
+        face.setColor(selected?(Ui.ACCENT&0x00ffffff)|0x27000000:Color.TRANSPARENT);
+        face.setCornerRadius(100);
+        iconBackground.setBackground(face);
+        icon.invalidate();
+    }
 }

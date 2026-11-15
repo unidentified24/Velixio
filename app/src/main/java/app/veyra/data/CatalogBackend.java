@@ -130,7 +130,12 @@ public final class CatalogBackend implements StreamingBackend {
     private static void collect(Object data,Map<String,JSONObject> items,int depth) throws JSONException {
         if(depth>12 || items.size()>=500)return;
         if(data instanceof JSONObject){JSONObject o=(JSONObject)data;
-            if(!o.optString("vod_name").isEmpty() && o.has("id")){items.put(o.optString("id"),o);return;}
+            if(!o.optString("vod_name").isEmpty() && o.has("id")){
+                String key=new JSONArray().put(o.optString("id")).put(o.optString("vod_name")).put(o.optString("vod_year"))
+                    .put(o.optString("_kind","movie")).put(CombinedCatalog.language(o)).put(CombinedCatalog.quality(o))
+                    .put(o.optString("audio_type","0")).put(CombinedCatalog.indexKey(o)).toString();
+                items.put(key,o);return;
+            }
             Iterator<String> keys=o.keys();while(keys.hasNext())collect(o.get(keys.next()),items,depth+1);
         }else if(data instanceof JSONArray){JSONArray a=(JSONArray)data;for(int i=0;i<a.length();i++)collect(a.get(i),items,depth+1);}
     }

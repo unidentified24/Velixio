@@ -9,8 +9,9 @@ import java.util.*;
 public final class WatchHistory {
     private WatchHistory() {}
     public static synchronized void remember(Context context,String provider,String kind,String id,String collection,String audioType,String title,String poster,long position,long duration,boolean completed) {
+        if(app.veyra.ProfileStore.prefs(context,"privacy").getBoolean("pauseHistory",false))return;
         if(id==null || id.isEmpty() || provider==null || kind==null)return;
-        SharedPreferences prefs=context.getSharedPreferences("watch-history",Context.MODE_PRIVATE);
+        SharedPreferences prefs=app.veyra.ProfileStore.prefs(context,"watch-history");
         try {
             String key=provider+":"+kind+":"+id;
             JSONObject record=new JSONObject().put("provider",provider).put("kind",kind).put("id",id).put("collection",collection)
@@ -22,13 +23,13 @@ public final class WatchHistory {
                 for(Map.Entry<String,?> entry:prefs.getAll().entrySet())try{long updated=new JSONObject((String)entry.getValue()).optLong("updatedAt");if(updated<time){time=updated;oldest=entry.getKey();}}catch(Exception ignored){edit.remove(entry.getKey());}
                 if(oldest!=null)edit.remove(oldest);
             }
-            edit.apply();
+            edit.apply();app.veyra.ResumeWidget.refresh(context,false);
         }catch(JSONException ignored){}
     }
     public static List<JSONObject> list(Context context) {
         List<JSONObject> records=new ArrayList<>();
-        for(Object value:context.getSharedPreferences("watch-history",Context.MODE_PRIVATE).getAll().values())try{JSONObject record=new JSONObject((String)value);if(!record.optBoolean("completed") && record.optLong("position")>0)records.add(record);}catch(Exception ignored){}
+        for(Object value:app.veyra.ProfileStore.prefs(context,"watch-history").getAll().values())try{JSONObject record=new JSONObject((String)value);if(!record.optBoolean("completed") && record.optLong("position")>0)records.add(record);}catch(Exception ignored){}
         records.sort((a,b)->Long.compare(b.optLong("updatedAt"),a.optLong("updatedAt")));return records;
     }
-    public static void clear(Context context){context.getSharedPreferences("watch-history",Context.MODE_PRIVATE).edit().clear().apply();context.getSharedPreferences("resume",Context.MODE_PRIVATE).edit().clear().apply();}
+    public static void clear(Context context){app.veyra.ProfileStore.prefs(context,"watch-history").edit().clear().apply();app.veyra.ProfileStore.prefs(context,"resume").edit().clear().apply();app.veyra.ResumeWidget.refresh(context,true);}
 }

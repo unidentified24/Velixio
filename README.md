@@ -4,10 +4,14 @@
 
 An Android streaming app with artwork-led discovery, a fullscreen player and a library you can take with you.
 
+## Version 2.0.0
+
+Pair a desktop or TV browser from the player. The receiver includes picture sizing, fullscreen controls, HLS quality selection and reconnection at the last playback position. See [casting compatibility](docs/CASTING.md) for receiver requirements.
+
 ## Downloads
 [Download APKs from GitHub Releases](https://github.com/unidentified24/Velixio/releases).
 
-Choose the newest release candidate for testing; older APKs are retained as historical builds.
+GitHub Releases retains available Android APKs.
 
 ## Features
 - Browse films, series, animation and shorts, with search across configured catalogs.
@@ -15,15 +19,13 @@ Choose the newest release candidate for testing; older APKs are retained as hist
 - Save titles to My list and resume from Continue watching.
 - Watch with quality, source, caption and picture-size controls, episode autoplay and picture-in-picture.
 - Choose from ten themes, including Amethyst, Forest, Rosewood and Glacier, with comfortable or compact poster layouts.
+- Use Viewing Overview to review profile watch time and jump back to recent episodes.
 - Export and restore saved titles, viewing history and preferences using `.velixiodata` backups.
 - Manage appearance, playback and data through dedicated Settings pages.
 - Download eligible streams and play completed copies offline; see [offline downloads and compatibility](docs/OFFLINE.md).
 
 - Check for updates automatically and download verified packages inside the app. Android confirms installation.
 - Schedule daily backups to a folder you choose, retaining seven copies.
-
-## Release track
-1.0.2 introduces the Velixio identity, in-app updates and automatic backups. Device acceptance is pending.
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.9:
@@ -38,6 +40,7 @@ The source builds without service credentials. Live streaming requires local con
 ```sh
 ./gradlew :app:lintDebug :app:testDebugUnitTest
 ./gradlew :app:connectedDebugAndroidTest
+node tests/browser-receiver.test.cjs
 ```
 
 See [verification](docs/VERIFICATION.md) for current results and device checks. The Android workflow can be run manually from GitHub Actions.
